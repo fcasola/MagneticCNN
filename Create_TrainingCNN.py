@@ -4,10 +4,14 @@ learning about propagation of magnetic fields in space
 
 written by F. Casola, Harvard University - fr.casola@gmail.com
 """
+import os
 import numpy as np
 import math as mt
 import scipy.signal as sc
 import argparse as ap
+import h5py
+import progressbar 
+
 
 def Array_pad(xax,yax,mx,my,mz,dnv):
     """
@@ -30,8 +34,8 @@ def Array_pad(xax,yax,mx,my,mz,dnv):
     ## compute extension
     ext_x = (Extension_gr-x_ext)*((Extension_gr-x_ext)>0)
     ext_y = (Extension_gr-y_ext)*((Extension_gr-y_ext)>0)
-    Nptsx = int(ext_x//dx)
-    Nptsy = int(ext_y//dy)    
+    Nptsx = int(ext_x/dx)
+    Nptsy = int(ext_y/dy)    
     ## padding X    
     str_x = xax[0]-Nptsx*dx
     end_x = xax[-1]+Nptsx*dx
@@ -110,34 +114,79 @@ def Compute_Bz(xax,yax,t,Ms,dnv,mx,my,mz):
     Bz = -0.5*(mu0*Ms)*(lapl_mz_sl + magn_chrg_sl)
     
     return Bz
+
+def save_to_hdf5(dic, filename):
+    """
+    Compact way to save to hierarchical data format, Part I
+    
+    Input parameters are
+        *dic: Dictionary, in the form {key: numerical or string item}
+        *filename: full *.h5 name of the file to save 
+        
+    """
+    with h5py.File(filename, 'w') as h5file:
+        save_dict_contents(h5file, '/', dic)
+
+def save_dict_contents(h5file, path, dic):
+    """
+    Compact way to save to hierarchical data format, Part II
+    """
+    for key, item in dic.items():
+        if isinstance(item, (np.ndarray, np.int64, np.float64, str, bytes)):
+            h5file[path + key] = item
+        else:
+            raise ValueError('Cannot save %s type'%type(item))
+
     
 if __name__ == "__main__":
     # Create training data for the magnetic convolutional neural net (MCNN)
     # Parsing the input
     parser = ap.ArgumentParser(description='Create training data for the MCNN.')
-    parser.add_argument('-o',"--Output", metavar='',help='Filename prefix for the hdf5 output', \
-                        required=True)
+    parser.add_argument('-o',"--Output", metavar='',help='Filename for the hdf5 output', \
+                        required=True,type=str)
     parser.add_argument('-n', '--Ndata', metavar='', help='Number of training samples (integer)', \
                         default=1000,type=int)
     args = vars(parser.parse_args())
     
     # Processing
-    Dtr=(28,28) # Dimension of Training data
     # Test parameters for training computation
     # Note: because scale invariance for the CNN is imposed via scaling below,
     # these parameters are arbitrary
+    Dtr=(32,32) # Fixed dimensions for the Training data
     dnv = 10e-9 # distance of the sensor
     t = 1e-9 # thickness of the magnetic layer
-    
-    print(args["Ndata"],args["Output"])
-    # create a folder if not existing called data/Training/
-    
+    Ms = 1 # Saturation magnetization, placeholder constant
+    Ndense = 4*Dtr[0] # Denser grid to avoid numerical errors
+    x_var = np.linspace(-(Dtr[0]//2)*dnv,(Dtr[0]//2)*dnv,Ndense)# spatial dimension of the map
+
     # create a generator that runs over Ndata, progressively saving into an hdf5 file
-    # the generator selects arbitrary m configurations
+    # the generator selects arbitrary magnetization configurations
+    Ntrain = args["Ndata"]
+    # Initialize the dictionary
+    print('Dictionary Initialization')
+    DictInit = {'Theta': np.zeros([1,Ntrain]), 'Phi': np.zeros([1,Ntrain]), \
+                'Bz': np.zeros([Ntrain,Dtr[0]*Dtr[1]]), 'mloc': np.zeros([Ntrain,Dtr[0]*Dtr[1]])}
+    # Compute training dataset
+    print('Compute training dataset')
+    progress = progressbar.ProgressBar()
+    for i in progress(range(Ntrain)):
+        # sample directions uniformly 
+        # http://corysimon.github.io/articles/uniformdistn-on-sphere/
+        
+        # sample phase space
     
+    # create a folder if not existing called data/Training/
+    directory = 'data\\Training'
+    root_dir = os.getcwd() 
+    if not os.path.exists(directory):    
+        os.makedirs(directory)    
+         
+    data_filename = os.path.join(directory,args["Output"] + '.h5')
     
-    
-    
-    
-    
+    # Save the dictionary into hdf5 format        
+    #dict = {'field 1': np.array([1,2,3]), 'field 2': np.array([[3,4,5],[3,4,5],[3,4,5]])}
+    print('Saving data as %s'%data_filename)
+    save_to_hdf5(dict, data_filename)
+            
+        
     
