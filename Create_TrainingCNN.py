@@ -11,7 +11,7 @@ import scipy.signal as sc
 import argparse as ap
 import h5py
 import progressbar 
-
+import scipy.ndimage as ndimage
 
 def Array_pad(xax,yax,mx,my,mz,dnv):
     """
@@ -115,6 +115,44 @@ def Compute_Bz(xax,yax,t,Ms,dnv,mx,my,mz):
     
     return Bz
 
+def return_shape(rmax,rdir,Dtr,xx,yy):
+    """
+    Producing random training shapes using randomly
+    generated ellipses
+
+    Input parameters are:
+        *rmax - maximum ellipse axis
+        *rdir - 1x5 random vector to scale ellipse axes, tilt, center
+        *Dtr - size of the map
+        *xx,yy - meshgridded 2d coordinates
+    
+    Returns
+    ----------
+        -mapM_smt, the DtrxDtr map representing the shape    
+    """
+    # ellipse parameters
+    a=rmax*rdir[0]
+    b=rmax*rdir[1]
+    tht = 2*mt.pi*rdir[2]
+    xc=Dtr*rdir[3]
+    yc=Dtr*rdir[4]
+    
+    # Initialize the map
+    mapM = np.zeros((Dtr,Dtr))
+    # select points within the ellipse
+    In_ellipse = ((((xx-xc)*mt.cos(tht) + (yy-yc)*mt.sin(tht))**2)/(a**2) + \
+          (((xx-xc)*mt.sin(tht) - (yy-yc)*mt.cos(tht))**2)/(b**2))<=1
+    # Create the shape 
+    mapM[In_ellipse] = 1
+    # kernel to smooth edges
+    kernelf = np.ones((2,2))
+    # Smooth map
+    mapM_smt = ndimage.filters.convolve(mapM,kernelf,mode='constant', cval=0.0)                            
+    # zero the boundaries
+    mapM_smt[0,:]=mapM_smt[-1,:]=mapM_smt[:,0]=mapM_smt[:,-1]=0
+    
+    return mapM_smt
+
 def save_to_hdf5(dic, filename):
     """
     Compact way to save to hierarchical data format, Part I
@@ -149,15 +187,23 @@ if __name__ == "__main__":
     args = vars(parser.parse_args())
     
     # Processing
+    
     # Test parameters for training computation
     # Note: because scale invariance for the CNN is imposed via scaling below,
-    # these parameters are arbitrary
-    Dtr=(32,32) # Fixed dimensions for the Training data
+    # these parameters are chosen for convenience
+    
+    # Map parameters
+    D0 = 32 # Fixed dimensions for the Training data
+    incdens = 4 # grid density increase for finite elements calculations
+    Dtr= D0*incdens # extended grid size
     dnv = 10e-9 # distance of the sensor
     t = 1e-9 # thickness of the magnetic layer
     Ms = 1 # Saturation magnetization, placeholder constant
-    Ndense = 4*Dtr[0] # Denser grid to avoid numerical errors
-    x_var = np.linspace(-(Dtr[0]//2)*dnv,(Dtr[0]//2)*dnv,Ndense)# spatial dimension of the map
+    x_var = np.linspace(-(Dtr//2)*dnv,(Dtr//2)*dnv,Dtr)# spatial dimension of the map
+    xx,yy = np.meshgrid(x_var,x_var)
+    
+    # ellipse parameters
+    rmax = 5
 
     # create a generator that runs over Ndata, progressively saving into an hdf5 file
     # the generator selects arbitrary magnetization configurations
@@ -165,15 +211,24 @@ if __name__ == "__main__":
     # Initialize the dictionary
     print('Dictionary Initialization')
     DictInit = {'Theta': np.zeros([1,Ntrain]), 'Phi': np.zeros([1,Ntrain]), \
-                'Bz': np.zeros([Ntrain,Dtr[0]*Dtr[1]]), 'mloc': np.zeros([Ntrain,Dtr[0]*Dtr[1]])}
+                'Bz': np.zeros([Ntrain,Dtr**2]), 'mloc': np.zeros([Ntrain,Dtr**2])}
     # Compute training dataset
     print('Compute training dataset')
     progress = progressbar.ProgressBar()
     for i in progress(range(Ntrain)):
         # sample directions uniformly 
         # http://corysimon.github.io/articles/uniformdistn-on-sphere/
-        
-        # sample phase space
+        rdir = np.random.random((1,7))
+        theta = mt.acos(1 - 2*rdir[0][0])
+        phi = 2*mt.pi*rdir[0][1]        
+        # create random shapes to train the CNN
+        mabs = return_shape(rmax,rdir[0][2:],Dtr,xx,yy)
+        # compute the stray field from this map
+        mx = mabs*mt.sin(theta)*mt.cos(phi)
+        my = mabs*mt.sin(theta)*mt.sin(phi)
+        mz = mabs*mt.cos(theta)
+        bz = Compute_Bz(x_var,x_var,t,Ms,dnv,mx,my,mz)
+        # slice and save in a single vector
     
     # create a folder if not existing called data/Training/
     directory = 'data\\Training'
