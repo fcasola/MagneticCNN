@@ -228,8 +228,12 @@ if __name__ == "__main__":
         my = mabs*mt.sin(theta)*mt.sin(phi)
         mz = mabs*mt.cos(theta)
         bz = Compute_Bz(x_var,x_var,t,Ms,dnv,mx,my,mz)
-        # slice and save in a single vector
-    
+        # Store in dictionary
+        DictInit['Theta'][0][i] = theta
+        DictInit['Phi'][0][i] = phi
+        DictInit['Bz'][i] = bz.reshape(-1,)[0:-1:incdens]
+        DictInit['mloc'][i] = mabs.reshape(-1,)[0:-1:incdens]        
+        
     # create a folder if not existing called data/Training/
     directory = 'data\\Training'
     root_dir = os.getcwd() 
@@ -239,9 +243,8 @@ if __name__ == "__main__":
     data_filename = os.path.join(directory,args["Output"] + '.h5')
     
     # Save the dictionary into hdf5 format        
-    #dict = {'field 1': np.array([1,2,3]), 'field 2': np.array([[3,4,5],[3,4,5],[3,4,5]])}
     print('Saving data as %s'%data_filename)
-    save_to_hdf5(dict, data_filename)
+    save_to_hdf5(DictInit, data_filename)
             
         
     
