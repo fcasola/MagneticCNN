@@ -17,7 +17,7 @@ Modules:
 
 ### Installing
 ```
-git clone https://github.com/fcasola/MagneticCN 
+git clone https://github.com/fcasola/MagneticCNN 
 cd MagneticCNN/bin
 python magnetic_cnn
 ```
