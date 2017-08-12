@@ -12,6 +12,7 @@ import argparse as ap
 import h5py
 import progressbar 
 import scipy.ndimage as ndimage
+import time
 
 def Array_pad(xax,yax,mx,my,mz,dnv):
     """
@@ -106,8 +107,10 @@ def Compute_Bz(xax,yax,t,Ms,dnv,mx,my,mz):
     lapl_mz = sc.convolve2d(alphaz,laplacZ,'same','wrap')*d2x*d2y
     
     # unpadding: remove extradimension after convolution through slicing
-    magn_chrg_sl = magn_chrg[Nptsy:-Nptsy,Nptsx:-Nptsx]
-    lapl_mz_sl = lapl_mz[Nptsy:-Nptsy,Nptsx:-Nptsx]
+    Csh = magn_chrg.shape
+    Lsh = magn_chrg.shape
+    magn_chrg_sl = magn_chrg[Nptsy:Csh[0]-Nptsy,Nptsx:Csh[1]-Nptsx]
+    lapl_mz_sl = lapl_mz[Nptsy:Lsh[0]-Nptsy,Nptsx:Lsh[1]-Nptsx]
     
     # rescale the output and get meaningful units
     mu0 = 4*mt.pi*1e-7
@@ -115,7 +118,7 @@ def Compute_Bz(xax,yax,t,Ms,dnv,mx,my,mz):
     
     return Bz
 
-def return_shape(rmax,rdir,Dtr,xx,yy):
+def return_shape(rmax,rdir,Dtr,dnv,xx,yy):
     """
     Producing random training shapes using randomly
     generated ellipses
@@ -124,6 +127,7 @@ def return_shape(rmax,rdir,Dtr,xx,yy):
         *rmax - maximum ellipse axis
         *rdir - 1x5 random vector to scale ellipse axes, tilt, center
         *Dtr - size of the map
+        *dnv - distance of the sensor
         *xx,yy - meshgridded 2d coordinates
     
     Returns
@@ -134,8 +138,8 @@ def return_shape(rmax,rdir,Dtr,xx,yy):
     a=rmax*rdir[0]
     b=rmax*rdir[1]
     tht = 2*mt.pi*rdir[2]
-    xc=Dtr*rdir[3]
-    yc=Dtr*rdir[4]
+    xc=abs(xx.max())*rdir[3]*dnv
+    yc=abs(yy.max())*rdir[4]*dnv
     
     # Initialize the map
     mapM = np.zeros((Dtr,Dtr))
@@ -145,7 +149,8 @@ def return_shape(rmax,rdir,Dtr,xx,yy):
     # Create the shape 
     mapM[In_ellipse] = 1
     # kernel to smooth edges
-    kernelf = np.ones((2,2))
+    dimk = 2
+    kernelf = np.ones((dimk,dimk))/(dimk**2)
     # Smooth map
     mapM_smt = ndimage.filters.convolve(mapM,kernelf,mode='constant', cval=0.0)                            
     # zero the boundaries
@@ -181,14 +186,14 @@ if __name__ == "__main__":
     # Parsing the input
     parser = ap.ArgumentParser(description='Create training data for the MCNN.')
     parser.add_argument('-o',"--Output", metavar='',help='Filename for the hdf5 output', \
-                        required=True,type=str)
+                        default='Training_set_'+time.strftime("%d_%m_%Y"),type=str)
     parser.add_argument('-n', '--Ndata', metavar='', help='Number of training samples (integer)', \
                         default=1000,type=int)
     args = vars(parser.parse_args())
     
     # Processing
     
-    # Test parameters for training computation
+    # Parameters for training computation
     # Note: because scale invariance for the CNN is imposed via scaling below,
     # these parameters are chosen for convenience
     
@@ -199,19 +204,19 @@ if __name__ == "__main__":
     dnv = 10e-9 # distance of the sensor
     t = 1e-9 # thickness of the magnetic layer
     Ms = 1 # Saturation magnetization, placeholder constant
-    x_var = np.linspace(-(Dtr//2)*dnv,(Dtr//2)*dnv,Dtr)# spatial dimension of the map
+    x_var = np.linspace(-(D0//2)*dnv,(D0//2)*dnv,Dtr)# spatial dimension of the map
     xx,yy = np.meshgrid(x_var,x_var)
     
     # ellipse parameters
-    rmax = 5
+    rmax = 5*incdens*dnv # maximum ellipse axis size (in m units)
 
-    # create a generator that runs over Ndata, progressively saving into an hdf5 file
-    # the generator selects arbitrary magnetization configurations
+    # create dictionary containing an Ntrain-sized set, 
+    # progressively saving into an hdf5 file random magnetization configurations
     Ntrain = args["Ndata"]
     # Initialize the dictionary
     print('Dictionary Initialization')
-    DictInit = {'Theta': np.zeros([1,Ntrain]), 'Phi': np.zeros([1,Ntrain]), \
-                'Bz': np.zeros([Ntrain,Dtr**2]), 'mloc': np.zeros([Ntrain,Dtr**2])}
+    DictInit = {'Theta': np.zeros([Ntrain,1]), 'Phi': np.zeros([Ntrain,1]), \
+                'Bz': np.zeros([Ntrain,D0**2]), 'mloc': np.zeros([Ntrain,D0**2])}
     # Compute training dataset
     print('Compute training dataset')
     progress = progressbar.ProgressBar()
@@ -222,17 +227,19 @@ if __name__ == "__main__":
         theta = mt.acos(1 - 2*rdir[0][0])
         phi = 2*mt.pi*rdir[0][1]        
         # create random shapes to train the CNN
-        mabs = return_shape(rmax,rdir[0][2:],Dtr,xx,yy)
+        mabs = return_shape(rmax,rdir[0][2:],Dtr,dnv,xx,yy)
         # compute the stray field from this map
         mx = mabs*mt.sin(theta)*mt.cos(phi)
         my = mabs*mt.sin(theta)*mt.sin(phi)
-        mz = mabs*mt.cos(theta)
+        mz = mabs*mt.cos(theta)             
         bz = Compute_Bz(x_var,x_var,t,Ms,dnv,mx,my,mz)
+        # Impose scale invariance
+        bz_scaled = -bz*(dnv**3)/(1e-7*t*Ms)
         # Store in dictionary
-        DictInit['Theta'][0][i] = theta
-        DictInit['Phi'][0][i] = phi
-        DictInit['Bz'][i] = bz.reshape(-1,)[0:-1:incdens]
-        DictInit['mloc'][i] = mabs.reshape(-1,)[0:-1:incdens]        
+        DictInit['Theta'][i][0] = theta
+        DictInit['Phi'][i][0] = phi
+        DictInit['Bz'][i] = bz_scaled[::incdens,::incdens].reshape(-1,)
+        DictInit['mloc'][i] = mabs[::incdens,::incdens].reshape(-1,)
         
     # create a folder if not existing called data/Training/
     directory = 'data\\Training'
@@ -245,6 +252,7 @@ if __name__ == "__main__":
     # Save the dictionary into hdf5 format        
     print('Saving data as %s'%data_filename)
     save_to_hdf5(DictInit, data_filename)
+    print('Done!')
             
         
     
