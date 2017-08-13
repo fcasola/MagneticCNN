@@ -1,8 +1,24 @@
-# MagneticCNN
-Convolutional Neural Net for magnetism problems.
+# Magnetic_CNN
+Convolutional Neural Nets for magnetism problems.
 
-## Getting Started
-Description of the code
+## Aim
+This code tests whether CNNs can "learn" the laws of magnetism
+and are capable of reconstructing magnetization patterns given the field 
+that they produce.
+
+This code is inspired by recent publications addressing the possibility 
+of machine learning algorithms to learn the laws of physics, e.g.:
+
+https://arxiv.org/pdf/1607.03597.pdf
+
+For the particular case of magnetism, we start from the formalism 
+derived by us in a recent publication at Harvard:
+
+https://arxiv.org/abs/1611.00673
+
+In this first version, the magnetization is assumed to be collinear but
+its orientation and spatial distribution is not known and will be the target 
+of the learning process.
 
 ### Prerequisites
 ```
@@ -39,12 +55,14 @@ save_train_set: ..\data\Training
 
 ### About the modules
 ```
-Create_TrainingCNN.py - Produces the training set using the theory 
-for magnetic field propagation derived in  https://arxiv.org/abs/1611.00673. 
-The module contains the function Compute_Bz, capable of finite element 
-computation of the stray field given a certain magnetization pattern.
+Create_TrainingCNN.py 
+- Produces the training set generating 2D magnetization patterns,
+chosen to be ellipses of random axes and tilt. The module contains 
+the function Compute_Bz, capable of finite element computation of 
+the stray field given a certain magnetization pattern.
 
-config.py - Import the configuration file
+config.py 
+- Import the configuration file
 
 ```
 
