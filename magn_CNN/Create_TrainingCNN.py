@@ -119,7 +119,7 @@ def Compute_Bz(xax,yax,t,Ms,dnv,mx,my,mz):
     
     return Bz
 
-def return_shape(rmax,rdir,Dtr,dnv,xx,yy):
+def return_shape(rmax,rdir,Dtr,xx,yy):
     """
     Producing random training shapes using randomly
     generated ellipses
@@ -128,7 +128,6 @@ def return_shape(rmax,rdir,Dtr,dnv,xx,yy):
         *rmax - maximum ellipse axis
         *rdir - 1x5 random vector to scale ellipse axes, tilt, center
         *Dtr - size of the map
-        *dnv - distance of the sensor
         *xx,yy - meshgridded 2d coordinates
     
     Returns
@@ -139,8 +138,8 @@ def return_shape(rmax,rdir,Dtr,dnv,xx,yy):
     a=rmax*rdir[0]
     b=rmax*rdir[1]
     tht = 2*mt.pi*rdir[2]
-    xc=abs(xx.max())*rdir[3]*dnv
-    yc=abs(yy.max())*rdir[4]*dnv
+    xc=xx.min()+(xx.max()-xx.min())*rdir[3]
+    yc=xx.min()+(yy.max()-yy.min())*rdir[4]
     
     # Initialize the map
     mapM = np.zeros((Dtr[0],Dtr[1]))
@@ -181,6 +180,26 @@ def save_dict_contents(h5file, path, dic):
         else:
             raise ValueError('Cannot save %s type'%type(item))
 
+def load_from_hdf5(filename):
+    """
+    Compact way to load hierarchical data format, Part I
+    
+        Input parameters are
+        *filename: full *.h5 name of the file to load 
+    """
+    with h5py.File(filename, 'r') as h5file:
+        return load_dict_contents(h5file, '/')
+
+def load_dict_contents(h5file, path):
+    """
+    Compact way to load hierarchical data format, Part II
+    """
+    ans = {}
+    for key, item in h5file[path].items():
+        if isinstance(item, h5py._hl.dataset.Dataset):
+            ans[key] = item.value
+    return ans
+
     
 if __name__ == "__main__":
     # Create training data for the magnetic convolutional neural net (MCNN)
@@ -220,7 +239,7 @@ if __name__ == "__main__":
     DictInit = {'Theta': np.zeros([Ntrain,1]), 'Phi': np.zeros([Ntrain,1]), \
                 'Bz': np.zeros([Ntrain,D0[0]*D0[1]]), 'mloc': np.zeros([Ntrain,D0[0]*D0[1]])}
     # Compute training dataset
-    print('Compute training dataset')
+    print('Generate training dataset')
     progress = progressbar.ProgressBar()
     for i in progress(range(Ntrain)):
         # sample directions uniformly 
@@ -229,7 +248,7 @@ if __name__ == "__main__":
         theta = mt.acos(1 - 2*rdir[0][0])
         phi = 2*mt.pi*rdir[0][1]        
         # create random shapes to train the CNN
-        mabs = return_shape(rmax,rdir[0][2:],Dtr,dnv,xx,yy)
+        mabs = return_shape(rmax,rdir[0][2:],Dtr,xx,yy)
         # compute the stray field from this map
         mx = mabs*mt.sin(theta)*mt.cos(phi)
         my = mabs*mt.sin(theta)*mt.sin(phi)

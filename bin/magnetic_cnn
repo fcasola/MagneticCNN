@@ -3,7 +3,7 @@ import time
 
 # Path to save the training set and basic initializations
 Path_training = 'Training_set_'+time.strftime("%d_%m_%Y")
-Numb_training = 5
+Numb_training = 1000
 
 # Create the training dataset
 os.system("python ../magn_CNN/Create_TrainingCNN.py -o {} -n {}".format(Path_training, Numb_training))
