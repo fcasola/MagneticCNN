@@ -45,9 +45,19 @@ You can change it as per your need. Here is what the default
 configuration file looks like:
 
 [Dataset]
+Ntrain_ex: 1000
 img_size: [32,32]
 finer_grid: 4
 rmax_v: 5
+
+[model]
+act_type: relu
+k_filt_str_lyr1: [3,3,1]
+Depth_lyr1: 16
+Pool1_str_lyr1: [2,2]
+Pool2_str_lyr1: [2,2]
+k_filt_str_lyr2: [3,3,1]
+Depth_lyr2: 16
 
 [paths]
 save_train_set: ..\data\Training
