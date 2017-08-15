@@ -208,7 +208,7 @@ if __name__ == "__main__":
     parser.add_argument('-o',"--Output", metavar='',help='Filename for the hdf5 output', \
                         default='Training_set_'+time.strftime("%d_%m_%Y"),type=str)
     parser.add_argument('-n', '--Ndata', metavar='', help='Number of training samples (integer)', \
-                        default=Ntrain_ex,type=int)
+                        default=Config_dic["Ntrain_ex"],type=int)
     args = vars(parser.parse_args())
     
     # Processing
@@ -218,8 +218,8 @@ if __name__ == "__main__":
     # these parameters are chosen for convenience
     
     # Map parameters
-    D0 = img_size #  Dimensions for the Training data; from config file
-    incdens = finer_grid # grid density increase; from config file
+    D0 = Config_dic["img_size"] #  Dimensions for the Training data; from config file
+    incdens = Config_dic["finer_grid"] # grid density increase; from config file
     Dtr= [i*incdens for i in D0] # extended grid size
     dnv = 10e-9 # distance of the sensor
     t = 1e-9 # thickness of the magnetic layer
@@ -229,7 +229,7 @@ if __name__ == "__main__":
     xx,yy = np.meshgrid(x_var,y_var)
     
     # ellipse parameters
-    rmax = rmax_v*dnv # maximum ellipse axis size (in m units); from config file
+    rmax = Config_dic["rmax_v"]*dnv # maximum ellipse axis size (in m units); from config file
 
     # create dictionary containing an Ntrain-sized set, 
     # progressively saving into an hdf5 file random magnetization configurations
@@ -263,7 +263,7 @@ if __name__ == "__main__":
         DictInit['mloc'][i] = mabs[::incdens,::incdens].reshape(-1,)
         
     # create a folder if not existing called data/Training/
-    directory = write_train_path
+    directory = Config_dic["write_train_path"]
     root_dir = os.getcwd() 
     if not os.path.exists(directory):    
         os.makedirs(directory)    
