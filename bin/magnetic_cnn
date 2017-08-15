@@ -2,13 +2,11 @@ import sys
 import os
 import time
 
-sys.path.append('..\magn_CNN')
-from config import *  
-
 
 # Path to save the training set and basic initializations
 Path_training = 'Training_set_'+time.strftime("%d_%m_%Y")
-Numb_training = Ntrain_ex
+# Define the size of the dataset you want to generate
+Numb_training = 1000
 
 # Create the training dataset
 os.system("python ../magn_CNN/Create_TrainingCNN.py -o {} -n {}".format(Path_training, Numb_training))

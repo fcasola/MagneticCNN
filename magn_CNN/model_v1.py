@@ -1,26 +1,21 @@
 """
-Convolutional Neural Network resembling the one in https://arxiv.org/pdf/1607.03597.pdf.
+Convolutional Neural Network model for magnetism problems
 
 written by F. Casola, Harvard University - fr.casola@gmail.com
 """
 
 import numpy as np
 import tensorflow as tf
-
-from tensorflow.contrib import learn
-from tensorflow.contrib.learn.python.learn.estimators import model_fn as model_fn_lib
 import math as mt
+from tensorflow.contrib import learn
 # personal modules
 from config import *
-
-# dummy declaration -- here for debugging purposes
-features = np.float32(np.zeros((5,1024)))
 
 
 # define a function capable of upscaling a tensor
 def upscaling(matr_in,factor,indim):
     """
-    The function performs upscaling in tensorflow.
+    Recursive function performing upscaling in tensorflow.
     Dimensions of a general tensor [batch_size,width,height,channels]
     will be upscaled recursively such that the new dimension is
     [batch_size,width*2^factor,height*2^factor,channels]
@@ -48,13 +43,30 @@ def upscaling(matr_in,factor,indim):
         h_fin = tf.reshape(g, [-1,indim[0]*2, indim[1]*2, indim[2]])
         return upscaling(h_fin,factor-1,[2*indim[0], 2*indim[1], indim[2]])
 
-def cnn_model_fn(features, labels, mode):   
-  """Model function for magnetic CNN."""
-  # Reshape X to 4-D tensor: [batch_size, width, height, channels]
-  # Magnetic field images are img_size[0]ximg_size[1] pixels, and have one color channel
+def cnn_model_fn(features, trg_map, mode):   
+  """
+    Model function for magnetic CNN.
+    This function implements the convolutional neural net model 
+    discussed in arxiv.org/pdf/1607.03597.pdf.
+    Input parameters are:
+        *features - input data; numpy float32 array with dimensions [batch_size,width*height]
+        *trg_map - target output data; numpy float32 array with dimensions [batch_size,width*height]
+        *mode - specifies the running mode. Definitions are
+                according to the standard learn.ModeKeys keys.
+                ** 'train': training mode.
+                ** 'eval': evaluation mode.
+                ** 'infer': inference mode.
+    Returns
+    ----------
+        - the tuple (loss,optimizer), representing the type of loss function 
+        and the optimizer method used.
+  """
+  # Reshape tensors to 4-D tensor: [batch_size, width, height, channels]
+  # Magnetic field images are img_size[0]ximg_size[1] pixels, and have one channel
   input_layer = tf.reshape(features, [-1, img_size[0],img_size[1], 1])
+  trg_map_rsh = tf.reshape(trg_map, [-1, img_size[0],img_size[1], 1])
 
-  # Selecting activation type. Not optimized yet     
+  # Selecting activation type.    
   if act_type=='relu':
      act_type = tf.nn.relu
   else:
@@ -99,7 +111,7 @@ def cnn_model_fn(features, labels, mode):
   
   # Do upscaling and combining
   # tensors conv2,pool1_lyr2 and pool2_lyr2 
-  # Pooling MUST rescale the map by powers of 2
+  # Pooling MUST rescale the map by powers of 2 by design
   
   # Upscaling
   factor1 = mt.log(Pool1_str_lyr2[0],2)
@@ -132,13 +144,37 @@ def cnn_model_fn(features, labels, mode):
       padding="same",
       activation=act_type)   
   
-   #    sess = tf.Session()
-   #    print(sess.run(tf.shape(h)))   
+  # The loss function
+  loss = None
+  train_op = None
+  
+  if mode != learn.ModeKeys.INFER:  
+      loss = tf.reduce_mean(tf.square(trg_map_rsh - conv4))
+      
+  if mode == learn.ModeKeys.TRAIN:
+      # Adam optimizer as in https://arxiv.org/pdf/1607.03597.pdf
+      optimizer = tf.train.AdagradOptimizer(learning_rate=learn_rate).minimize(loss)
+      
+  return (loss,optimizer)
 
 
 def main(unused_argv):
   # Load training and eval data
   print("Dummy")
+    # dummy declaration -- here for debugging purposes
+    features = np.float32(np.zeros((5,1024)))
+    # same has to be be done for trg_map
+    trg_map = tf.reshape(np.float32(np.zeros((5,1024))), [-1, img_size[0],img_size[1], 1])
+  
+  
+  # Initialize dictionary to store layers weight & bias
+  
+  # initialize variables
+  
+  # get epochs and training parameters
+  
+  # running the training cycle
+  
 
 if __name__ == "__main__":
   tf.app.run()

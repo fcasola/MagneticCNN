@@ -208,7 +208,7 @@ if __name__ == "__main__":
     parser.add_argument('-o',"--Output", metavar='',help='Filename for the hdf5 output', \
                         default='Training_set_'+time.strftime("%d_%m_%Y"),type=str)
     parser.add_argument('-n', '--Ndata', metavar='', help='Number of training samples (integer)', \
-                        default=1000,type=int)
+                        default=Ntrain_ex,type=int)
     args = vars(parser.parse_args())
     
     # Processing
