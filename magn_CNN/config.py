@@ -24,8 +24,6 @@ Pool1_str_lyr1 = json.loads(config.get("model","Pool1_str_lyr1"))
 Pool2_str_lyr1 = json.loads(config.get("model","Pool2_str_lyr1"))
 k_filt_str_lyr2 = json.loads(config.get("model","k_filt_str_lyr2"))
 Depth_lyr2 = config.getint("model", "Depth_lyr2")
-Pool1_str_lyr2 = json.loads(config.get("model","Pool1_str_lyr2"))
-Pool2_str_lyr2 = json.loads(config.get("model","Pool2_str_lyr2"))
 k_filt_str_lyr3 = json.loads(config.get("model","k_filt_str_lyr3"))
 Depth_lyr3 = config.getint("model", "Depth_lyr3")
 
@@ -49,8 +47,6 @@ Config_dic= {"Ntrain_ex": Ntrain_ex,
 		"Pool2_str_lyr1": Pool2_str_lyr1,
 		"k_filt_str_lyr2": k_filt_str_lyr2,
 		"Depth_lyr2": Depth_lyr2,
-		"Pool1_str_lyr2": Pool1_str_lyr2,
-		"Pool2_str_lyr2": Pool2_str_lyr2,
 		"k_filt_str_lyr3": k_filt_str_lyr3,
 		"Depth_lyr3": Depth_lyr3,
 		"learn_rate": learn_rate,

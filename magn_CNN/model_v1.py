@@ -7,6 +7,7 @@ written by F. Casola, Harvard University - fr.casola@gmail.com
 import numpy as np
 import tensorflow as tf
 import math as mt
+import progressbar 
 from tensorflow.contrib import learn
 # personal modules
 from config import *
@@ -67,9 +68,15 @@ def cnn_model_fn(features, trg_map, mode, Config_dic):
   """
   # Reshape tensors to 4-D tensor: [batch_size, width, height, channels]
   # Magnetic field images are img_size[0]ximg_size[1] pixels, and have one channel
-  input_layer = tf.reshape(features, [-1, Config_dic["img_size"][0],Config_dic["img_size"][1], 1])
-  trg_map_rsh = tf.reshape(trg_map, [-1, Config_dic["img_size"][0],Config_dic["img_size"][1], 1])
-
+  
+  #input_layer = tf.reshape(features, [-1, Config_dic["img_size"][0],Config_dic["img_size"][1], 1])
+  #trg_map_rsh = tf.reshape(trg_map, [-1, Config_dic["img_size"][0],Config_dic["img_size"][1], 1])
+  
+  x = tf.placeholder(tf.float32, [Config_dic["batch_size"], features.shape[1]])
+  y = tf.placeholder(tf.float32, [Config_dic["batch_size"], trg_map.shape[1]])  
+  input_layer = tf.reshape(x, [-1, Config_dic["img_size"][0],Config_dic["img_size"][1], 1])
+  trg_map_rsh = tf.reshape(y, [-1, Config_dic["img_size"][0],Config_dic["img_size"][1], 1])
+  
   # Selecting activation type.    
   if Config_dic["act_type"]=='relu':
      act_type = tf.nn.relu
@@ -141,8 +148,8 @@ def cnn_model_fn(features, trg_map, mode, Config_dic):
   # Pooling MUST rescale the map by powers of 2 by design
   
   # Upscaling
-  factor1 = mt.log(Config_dic["Pool1_str_lyr2"][0],2)
-  factor2 = mt.log(Config_dic["Pool2_str_lyr2"][0]*Config_dic["Pool2_str_lyr1"][0],2)
+  factor1 = mt.log(Config_dic["Pool1_str_lyr1"][0],2)
+  factor2 = mt.log(Config_dic["Pool2_str_lyr1"][0]*Config_dic["Pool2_str_lyr1"][0],2)
   if ((factor1%1)!=0 or (factor2%1)!=0)==True:
       raise ValueError('Pooling size/sizes not multiple of 2')        
   ndim1 = [int(Config_dic["img_size"][0]/(2**factor1)), \
@@ -187,7 +194,7 @@ def cnn_model_fn(features, trg_map, mode, Config_dic):
   # initialize all variables
   init = tf.global_variables_initializer()   
 
-  return (loss,optimizer,init)
+  return (loss,optimizer,init,x,y)
 
 # write a function that saves to file using saver = tf.train.Saver()
 # write a function that loads from file using saver.restore(sess, "/tmp/model.ckpt")
@@ -196,34 +203,52 @@ def cnn_model_fn(features, trg_map, mode, Config_dic):
 
 def main(unused_argv):
   # Load training and eval data
-  print("Dummy")
+  print("training")
   filename = "..\data\Training\Training_set_12_08_2017.h5"
   loaddataset =  ct.load_from_hdf5(filename)
-
-  #135
-  itemsel=10  
-  mapdim = 32
-  
+  itemsel=200  
   #bz_sel = loaddataset["Bz"][0:itemsel][:].reshape((-1,mapdim,mapdim))
   #m_sel = loaddataset["mloc"][0:itemsel][:].reshape((-1,mapdim,mapdim))
   features = np.float32(loaddataset["Bz"][0:itemsel][:])
   trg_map = np.float32(loaddataset["mloc"][0:itemsel][:])
+  
+  features = np.float32(loaddataset["Bz"][0:Config_dic["batch_size"]][:])
+  trg_map = np.float32(loaddataset["mloc"][0:Config_dic["batch_size"]][:])
+  
+  
+  #x = tf.placeholder(tf.float32, [Config_dic["batch_size"], features.shape[1]])
+  #y = tf.placeholder(tf.float32, [Config_dic["batch_size"], trg_map.shape[1]])
+  
   #phi = loaddataset["Phi"][itemsel][:]
   #tht = loaddataset["Theta"][itemsel][:]
 
-  # same has to be be done for trg_map
+  # Initialize the model and the related variables
   tf.reset_default_graph()  
-  loss,optimizer,init = cnn_model_fn(features, trg_map, 'train',Config_dic)
-  # Initialize dictionary to store layers weight & bias
+  loss,optimizer,init,x,y = cnn_model_fn(features, trg_map, 'train',Config_dic)
+  # Getting the list of all trainable variables
+  tvar = tf.trainable_variables()  
+  # starting the session
+  with tf.Session() as sess: 
+      sess.run(init)
+      # training cycle; have to add
+      print('Training cycle started...')
+      progress = progressbar.ProgressBar()
+      for epoch in progress(range(Config_dic["epochs"])):
+          avg_cost = 0
+          total_batch = int(features.shape[0]/Config_dic["batch_size"])
+          for i in range(total_batch):
+              batch_feat = features[i*Config_dic["batch_size"]: \
+                                    (i+1)*Config_dic["batch_size"]]
+              batch_trg = trg_map[i*Config_dic["batch_size"]: \
+                                  (i+1)*Config_dic["batch_size"]]
+              # Minimizer   
+              _, BatchLoss = sess.run([optimizer, loss], feed_dict={x: batch_feat, y: batch_trg})
+    
+              avg_cost += BatchLoss/total_batch
+              
+          print("Epoch:", (epoch+1), "cost =", "{:.5f}".format(avg_cost))              
   
-  # initialize variables 
-  tvar = tf.trainable_variables()
-  tvar
-  # to clear graph use 
-  # get epochs and training parameters
-  
-  # running the training cycle
-  
+      print("Training complete!")
 
 if __name__ == "__main__":
   tf.app.run()
