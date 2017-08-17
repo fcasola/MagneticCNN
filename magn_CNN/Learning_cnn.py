@@ -9,12 +9,15 @@ import tensorflow as tf
 import math as mt
 import progressbar 
 import os
+import time
 from tensorflow.contrib import learn
 # personal modules
 from config import *
 # testing 
 import Create_TrainingCNN as ct
 import matplotlib.pyplot as plt
+
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 # define a function capable of upscaling a tensor
 def upscaling(matr_in,factor,indim):
@@ -239,57 +242,70 @@ def run_training(loss,optimizer,init,x,y,features,targets,session_datafile):
 
 # write a function that loads from file using saver.restore(sess, "/tmp/model.ckpt")
 
-
-
 if __name__ == "__main__":
   # Load training and eval data 
   # this section is hard-coded... not completed
-  filename = "..\data\Training\Training_set_16_08_2017.h5"
-  loaddataset =  ct.load_from_hdf5(filename)
-  itemsel=2000  # only 2e3 data picked
-  #bz_sel = loaddataset["Bz"][0:itemsel][:].reshape((-1,mapdim,mapdim))
-  #m_sel = loaddataset["mloc"][0:itemsel][:].reshape((-1,mapdim,mapdim))
-  bz_sel = np.float32(1e15*loaddataset["Bz"][0:itemsel][:])
-  m_sel = np.float32(loaddataset["mloc"][0:itemsel][:])  
-  mode = 'train'
-  #phi = loaddataset["Phi"][itemsel][:]
-  #tht = loaddataset["Theta"][itemsel][:]
+  print('-'*10 + 'Learning algorithm' + '-'*10 + '\n')
+  
+  # get latest modified file in the Training dataset folder
+  extension_f = '.h5'
+  directory = Config_dic["write_train_path"]  
+  list_of_files = []
+  if os.path.exists(directory): 
+   for fname in os.listdir(directory):
+       if fname.endswith(extension_f):     
+           list_of_files.append(os.path.join(directory,fname))
+   if len(list_of_files) !=0:           
+       mode = 'train'           
+      # Loading from the latest file saved  
+       latest_file = max(list_of_files, key=os.path.getctime)
+       print('The dataset\n: ' + latest_file + '\n will be used for training\n')
+       loaddataset =  ct.load_from_hdf5(latest_file)
+       itemsel=int(len(loaddataset['Phi'])*2/5)  # only 2/5 data picked
+       #bz_sel = loaddataset["Bz"][0:itemsel][:].reshape((-1,mapdim,mapdim))
+       #m_sel = loaddataset["mloc"][0:itemsel][:].reshape((-1,mapdim,mapdim))
+       bz_sel = np.float32(1e15*loaddataset["Bz"][0:itemsel][:])
+       m_sel = np.float32(loaddataset["mloc"][0:itemsel][:])  
+       #phi = loaddataset["Phi"][itemsel][:]
+       #tht = loaddataset["Theta"][itemsel][:]   
+   else:
+       # folder is empty
+       mode = 'exit'
+  else:
+   mode = 'exit'
 
   if mode == learn.ModeKeys.TRAIN:
-    print("training")
+    print("training started...\n")
     args={} # this should come from parsing.. to be done
-    args["Output"] = 'bla'
+    args["Output"] = 'Learned_mod_'+time.strftime("%d_%m_%Y")
 
-    # check if trained models are there already
-    Proc_furth = 0    
+    # check if trained models are there already    
+    extension_f = '.ckpt'
     directory = Config_dic["save_learned"]
     data_filename = os.path.join(directory,args["Output"] + '.ckpt')
-    list_of_files=[]
-    root_dir = os.getcwd() 
-    mexg1= 'The following learned model/models are already available:\n'
-    mexg2= 'Should I save using the filename:\n' \
-                   + data_filename + '?[yes/no]\n'
-    if os.path.exists(directory): 
-       for fname in os.listdir(directory):
-           if fname.endswith('.ckpt'):     
-               list_of_files.append(fname)
-       rep = None
-       while rep==None:
-           rep = ct.question_to_write(list_of_files,data_filename,mexg1,mexg2)
-       Proc_furth= int(rep)                       
-    else:                          
-        os.makedirs(directory) 
-        Proc_furth = 1      
+    Proc_furth = ct.check_proceed(directory,data_filename,extension_f)    
 
     if Proc_furth==1:       
       # Initialize the model and the related variables
+      print('1/2 - Creating the cnn model.')
       tf.reset_default_graph()  
       loss,optimizer,init,x,y = cnn_model_fn(mode,Config_dic)
       # Getting the list of all trainable variables
       tvar = tf.trainable_variables()  
       # Running the training
+      print('Done!\n')
+      print('2/2 - Executing the training\n')
+      print('Epochs: %4d Batch size: %4d Learn rate: %6.4f Dataset size: %5d \n' \
+            %(Config_dic["epochs"],Config_dic["batch_size"],Config_dic["learn_rate"],itemsel))
       run_training(loss,optimizer,init,x,y,bz_sel,m_sel,data_filename)
+      print('Done!\n')
     else:
         print('\n No new learning data produced.\n \
-              The most recent file will be used in predictions.')      
+              The most recent file will be used in predictions.')            
+  elif mode == 'exit':  
+    print('No dataset available for training.')    
+  else:
+    print('No action')  
+    
+  print('-'*10 + '-'*16 + '-'*10 + '\n')        
 

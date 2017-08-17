@@ -214,6 +214,28 @@ def question_to_write(list_of_files,data_filename,mexg1,mexg2):
     else:
        print("Please respond with 'yes' or 'no'")
 
+def check_proceed(directory,data_filename,extension_f):
+    # check if training data are there already
+    Proc_furth = 0    
+    list_of_files=[]
+    mexg1= 'The following file/files are already available:\n'
+    mexg2= 'Should I create a new file called:\n' \
+                   + data_filename + '?[yes/no]\n'
+    if os.path.exists(directory): 
+       for fname in os.listdir(directory):
+           if fname.endswith(extension_f):     
+               list_of_files.append(fname)
+       if len(list_of_files) !=0:        
+           rep = None
+           while rep==None:
+               rep = question_to_write(list_of_files,data_filename,mexg1,mexg2)
+           Proc_furth= int(rep)                      
+       else:
+           Proc_furth=1
+    else:                          
+        os.makedirs(directory) 
+        Proc_furth = 1
+    return Proc_furth        
     
 if __name__ == "__main__":
     # Create training data for the magnetic convolutional neural net (MCNN)
@@ -226,31 +248,14 @@ if __name__ == "__main__":
     args = vars(parser.parse_args())
     
     # Processing
-    
+    print('-'*10 + 'Dataset creation' + '-'*10 + '\n')
     # Parameters for training computation
     # Note: because scale invariance for the CNN is imposed via scaling below,
     # these parameters are chosen for convenience
-    
-    # check if training data are there already
-    Proc_furth = 0    
+    extension_f = '.h5'
     directory = Config_dic["write_train_path"]
     data_filename = os.path.join(directory,args["Output"] + '.h5')
-    list_of_files=[]
-    root_dir = os.getcwd() 
-    mexg1= 'The following training data are already available:\n'
-    mexg2= 'Should I save using the filename:\n' \
-                   + data_filename + '?[yes/no]\n'
-    if os.path.exists(directory): 
-       for fname in os.listdir(directory):
-           if fname.endswith('.h5'):     
-               list_of_files.append(fname)
-       rep = None
-       while rep==None:
-           rep = question_to_write(list_of_files,data_filename,mexg1,mexg2)
-       Proc_furth= int(rep)                       
-    else:                          
-        os.makedirs(directory) 
-        Proc_furth = 1
+    Proc_furth = check_proceed(directory,data_filename,extension_f)
          
     if Proc_furth==1: 
         # Map parameters
@@ -304,8 +309,9 @@ if __name__ == "__main__":
         save_to_hdf5(DictInit, data_filename)
         print('Done!')
     else:
-        print('\nNo new training data produced.\n \
-              The most recent file will be used in training.')
-            
+        print('\n Ok. The most recent *.h5 file will be used in training.')
+    
+    print('-'*10 + '-'*16 + '-'*10 + '\n')
+        
         
     
