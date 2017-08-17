@@ -200,6 +200,20 @@ def load_dict_contents(h5file, path):
             ans[key] = item.value
     return ans
 
+def question_to_write(list_of_files,data_filename,mexg1,mexg2):
+    yes = set(['yes','y', 'ye', ''])
+    no = set(['no','n'])
+    print(mexg1)
+    for pf in range(len(list_of_files)):
+        print(list_of_files[pf])
+    choice = input('\n' + mexg2).lower()
+    if choice in yes:
+       return True
+    elif choice in no:
+       return False
+    else:
+       print("Please respond with 'yes' or 'no'")
+
     
 if __name__ == "__main__":
     # Create training data for the magnetic convolutional neural net (MCNN)
@@ -217,63 +231,81 @@ if __name__ == "__main__":
     # Note: because scale invariance for the CNN is imposed via scaling below,
     # these parameters are chosen for convenience
     
-    # Map parameters
-    D0 = Config_dic["img_size"] #  Dimensions for the Training data; from config file
-    incdens = Config_dic["finer_grid"] # grid density increase; from config file
-    Dtr= [i*incdens for i in D0] # extended grid size
-    dnv = 10e-9 # distance of the sensor
-    t = 1e-9 # thickness of the magnetic layer
-    Ms = 1 # Saturation magnetization, placeholder constant
-    x_var = np.linspace(-(D0[0]//2)*dnv,(D0[0]//2)*dnv,Dtr[0])# spatial dimension of the map
-    y_var = np.linspace(-(D0[1]//2)*dnv,(D0[1]//2)*dnv,Dtr[1])# spatial dimension of the map
-    xx,yy = np.meshgrid(x_var,y_var)
-    
-    # ellipse parameters
-    rmax = Config_dic["rmax_v"]*dnv # maximum ellipse axis size (in m units); from config file
-
-    # create dictionary containing an Ntrain-sized set, 
-    # progressively saving into an hdf5 file random magnetization configurations
-    Ntrain = args["Ndata"]
-    # Initialize the dictionary
-    print('Dictionary Initialization')
-    DictInit = {'Theta': np.zeros([Ntrain,1]), 'Phi': np.zeros([Ntrain,1]), \
-                'Bz': np.zeros([Ntrain,D0[0]*D0[1]]), 'mloc': np.zeros([Ntrain,D0[0]*D0[1]])}
-    # Compute training dataset
-    print('Generate training dataset')
-    progress = progressbar.ProgressBar()
-    for i in progress(range(Ntrain)):
-        # sample directions uniformly 
-        # http://corysimon.github.io/articles/uniformdistn-on-sphere/
-        rdir = np.random.random((1,7))
-        theta = mt.acos(1 - 2*rdir[0][0])
-        phi = 2*mt.pi*rdir[0][1]        
-        # create random shapes to train the CNN
-        mabs = return_shape(rmax,rdir[0][2:],Dtr,xx,yy)
-        # compute the stray field from this map
-        mx = mabs*mt.sin(theta)*mt.cos(phi)
-        my = mabs*mt.sin(theta)*mt.sin(phi)
-        mz = mabs*mt.cos(theta)             
-        bz = Compute_Bz(x_var,y_var,t,Ms,dnv,mx,my,mz)
-        # Impose scale invariance
-        bz_scaled = -bz*(dnv**3)/(1e-7*t*Ms)
-        # Store in dictionary
-        DictInit['Theta'][i][0] = theta
-        DictInit['Phi'][i][0] = phi
-        DictInit['Bz'][i] = bz_scaled[::incdens,::incdens].reshape(-1,)
-        DictInit['mloc'][i] = mabs[::incdens,::incdens].reshape(-1,)
-        
-    # create a folder if not existing called data/Training/
+    # check if training data are there already
+    Proc_furth = 0    
     directory = Config_dic["write_train_path"]
-    root_dir = os.getcwd() 
-    if not os.path.exists(directory):    
-        os.makedirs(directory)    
-         
     data_filename = os.path.join(directory,args["Output"] + '.h5')
+    list_of_files=[]
+    root_dir = os.getcwd() 
+    mexg1= 'The following training data are already available:\n'
+    mexg2= 'Should I save using the filename:\n' \
+                   + data_filename + '?[yes/no]\n'
+    if os.path.exists(directory): 
+       for fname in os.listdir(directory):
+           if fname.endswith('.h5'):     
+               list_of_files.append(fname)
+       rep = None
+       while rep==None:
+           rep = question_to_write(list_of_files,data_filename,mexg1,mexg2)
+       Proc_furth= int(rep)                       
+    else:                          
+        os.makedirs(directory) 
+        Proc_furth = 1
+         
+    if Proc_furth==1: 
+        # Map parameters
+        D0 = Config_dic["img_size"] #  Dimensions for the Training data; from config file
+        incdens = Config_dic["finer_grid"] # grid density increase; from config file
+        Dtr= [i*incdens for i in D0] # extended grid size
+        dnv = 10e-9 # distance of the sensor
+        t = 1e-9 # thickness of the magnetic layer
+        Ms = 1 # Saturation magnetization, placeholder constant
+        x_var = np.linspace(-(D0[0]//2)*dnv,(D0[0]//2)*dnv,Dtr[0])# spatial dimension of the map
+        y_var = np.linspace(-(D0[1]//2)*dnv,(D0[1]//2)*dnv,Dtr[1])# spatial dimension of the map
+        xx,yy = np.meshgrid(x_var,y_var)
+        
+        # ellipse parameters
+        rmax = Config_dic["rmax_v"]*dnv # maximum ellipse axis size (in m units); from config file
     
-    # Save the dictionary into hdf5 format        
-    print('Saving data as %s'%data_filename)
-    save_to_hdf5(DictInit, data_filename)
-    print('Done!')
+        # create dictionary containing an Ntrain-sized set, 
+        # progressively saving into an hdf5 file random magnetization configurations
+        Ntrain = args["Ndata"]
+        # Initialize the dictionary
+        print('Dictionary Initialization')
+        DictInit = {'Theta': np.zeros([Ntrain,1]), 'Phi': np.zeros([Ntrain,1]), \
+                    'Bz': np.zeros([Ntrain,D0[0]*D0[1]]), 'mloc': np.zeros([Ntrain,D0[0]*D0[1]])}
+        # Compute training dataset
+        print('Generate training dataset')
+        progress = progressbar.ProgressBar()
+        for i in progress(range(Ntrain)):
+            # sample directions uniformly 
+            # http://corysimon.github.io/articles/uniformdistn-on-sphere/
+            rdir = np.random.random((1,7))
+            theta = mt.acos(1 - 2*rdir[0][0])
+            phi = 2*mt.pi*rdir[0][1]        
+            # create random shapes to train the CNN
+            mabs = return_shape(rmax,rdir[0][2:],Dtr,xx,yy)
+            # compute the stray field from this map
+            mx = mabs*mt.sin(theta)*mt.cos(phi)
+            my = mabs*mt.sin(theta)*mt.sin(phi)
+            mz = mabs*mt.cos(theta)             
+            bz = Compute_Bz(x_var,y_var,t,Ms,dnv,mx,my,mz)
+            # Impose scale invariance
+            bz_scaled = -bz*(dnv**3)/(1e-7*t*Ms)
+            # Store in dictionary
+            DictInit['Theta'][i][0] = theta
+            DictInit['Phi'][i][0] = phi
+            DictInit['Bz'][i] = bz_scaled[::incdens,::incdens].reshape(-1,)
+            DictInit['mloc'][i] = mabs[::incdens,::incdens].reshape(-1,)
+    
+        
+        # Save the dictionary into hdf5 format        
+        print('Saving data as %s'%data_filename)
+        save_to_hdf5(DictInit, data_filename)
+        print('Done!')
+    else:
+        print('\nNo new training data produced.\n \
+              The most recent file will be used in training.')
             
         
     

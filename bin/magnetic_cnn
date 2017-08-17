@@ -6,7 +6,10 @@ import time
 # Path to save the training set and basic initializations
 Path_training = 'Training_set_'+time.strftime("%d_%m_%Y")
 # Define the size of the dataset you want to generate
-Numb_training = 1000
+Numb_training = 5000
 
 # Create the training dataset
 os.system("python ../magn_CNN/Create_TrainingCNN.py -o {} -n {}".format(Path_training, Numb_training))
+
+# Learning from the dataset (incomplete)
+os.system("python ../magn_CNN/Learning_cnn.py")

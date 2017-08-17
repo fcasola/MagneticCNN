@@ -34,6 +34,7 @@ batch_size = config.getint("training", "batch_size")
 
 #paths
 write_train_path = config.get("paths", "save_train_set")
+save_learned = config.get("paths", "save_learned")
 
 # create a dictionary that stores them all
 Config_dic= {"Ntrain_ex": Ntrain_ex,
@@ -52,5 +53,6 @@ Config_dic= {"Ntrain_ex": Ntrain_ex,
 		"learn_rate": learn_rate,
 		"epochs": epochs,
 		"batch_size": batch_size,
-		"write_train_path": write_train_path}
+		"write_train_path": write_train_path,
+		"save_learned": save_learned}
 
