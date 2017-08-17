@@ -28,7 +28,7 @@ Modules:
 -h5py
 -argparse
 -progressbar
-
+-tensorflow
 ```
 
 ### Installing
@@ -58,9 +58,17 @@ Pool1_str_lyr1: [2,2]
 Pool2_str_lyr1: [2,2]
 k_filt_str_lyr2: [3,3,1]
 Depth_lyr2: 16
+k_filt_str_lyr3: [3,3,1]
+Depth_lyr3: 16
+
+[training]
+learn_rate: 0.05
+epochs: 30
+batch_size: 2 
 
 [paths]
 save_train_set: ..\data\Training
+save_learned: ..\data\Learned
 ```
 
 ### About the modules
@@ -74,6 +82,8 @@ the stray field given a certain magnetization pattern.
 config.py 
 - Import the configuration file
 
+Learning_cnn.py
+- Performs training over the generated dataset
 ```
 
 
