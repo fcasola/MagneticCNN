@@ -239,7 +239,9 @@ def run_training(loss,optimizer,init,x,y,features,targets,session_datafile):
               
           print("\nEpoch:", (epoch+1), "cost =", "{:.5f}".format(avg_cost))              
           costv.append(avg_cost)    
-      print('Saving training')    
+      print('Saving training')
+      Loss_dic={"loss":np.array(costv)}
+      ct.save_to_hdf5(Loss_dic,  data_filename + '_Loss.h5')
       save_path = saver.save(sess, session_datafile) # .ckpt file   
       print('Training complete!')
       
