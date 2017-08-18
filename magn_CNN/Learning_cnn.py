@@ -11,12 +11,11 @@ import progressbar
 import os
 import time
 from tensorflow.contrib import learn
+import Create_TrainingCNN as ct
 # personal modules
 from config import *
-# testing 
-import Create_TrainingCNN as ct
-import matplotlib.pyplot as plt
 
+# Reduce verbosity of tensorflow
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 # define a function capable of upscaling a tensor
@@ -73,8 +72,8 @@ def cnn_model_fn(mode, Config_dic):
   # Number of pixels in the image
   Numpixels = Config_dic["img_size"][0]*Config_dic["img_size"][1]
   # Tensorflow placeholders for the input and output of the cnn
-  x = tf.placeholder(tf.float32, [Config_dic["batch_size"], Numpixels])
-  y = tf.placeholder(tf.float32, [Config_dic["batch_size"], Numpixels])  
+  x = tf.placeholder(tf.float32, [None, Numpixels], name='x')
+  y = tf.placeholder(tf.float32, [None, Numpixels], name='y')  
   # Reshaping the input
   input_layer = tf.reshape(x, [-1, Config_dic["img_size"][0],Config_dic["img_size"][1], 1])
   
@@ -184,9 +183,11 @@ def cnn_model_fn(mode, Config_dic):
   # The loss function
   loss = None
   optimizer = None
+  init = 0
   
   # Prepare for loss calculation
   out_rshp = tf.reshape(conv5, [-1, Numpixels])
+  
   
   if mode != learn.ModeKeys.INFER:  
       # reduce_mean does not depend on batch size,
@@ -196,10 +197,13 @@ def cnn_model_fn(mode, Config_dic):
   if mode == learn.ModeKeys.TRAIN:
       # Adam optimizer as in https://arxiv.org/pdf/1607.03597.pdf
       optimizer = tf.train.AdagradOptimizer(learning_rate=Config_dic["learn_rate"]).minimize(loss)
-      
+      # Adding outputs to collection
+      tf.add_to_collection("output_net", out_rshp)
+      tf.add_to_collection("loss_net", loss)
+     
   # initialize all variables
   init = tf.global_variables_initializer()   
-
+    
   return (loss,optimizer,init,x,y)
 
 
@@ -261,7 +265,7 @@ if __name__ == "__main__":
        latest_file = max(list_of_files, key=os.path.getctime)
        print('The dataset\n: ' + latest_file + '\n will be used for training\n')
        loaddataset =  ct.load_from_hdf5(latest_file)
-       itemsel=int(len(loaddataset['Phi'])*2/5)  # only 2/5 data picked
+       itemsel=int(len(loaddataset['Phi'])*3/5)  # only 2/5 data picked
        #bz_sel = loaddataset["Bz"][0:itemsel][:].reshape((-1,mapdim,mapdim))
        #m_sel = loaddataset["mloc"][0:itemsel][:].reshape((-1,mapdim,mapdim))
        bz_sel = np.float32(1e15*loaddataset["Bz"][0:itemsel][:])
@@ -280,14 +284,14 @@ if __name__ == "__main__":
     args["Output"] = 'Learned_mod_'+time.strftime("%d_%m_%Y")
 
     # check if trained models are there already    
-    extension_f = '.ckpt'
+    extension_f = '.meta'
     directory = Config_dic["save_learned"]
-    data_filename = os.path.join(directory,args["Output"] + '.ckpt')
+    data_filename = os.path.join(directory,args["Output"])
     Proc_furth = ct.check_proceed(directory,data_filename,extension_f)    
 
     if Proc_furth==1:       
       # Initialize the model and the related variables
-      print('1/2 - Creating the cnn model.')
+      print('\n1/2 - Creating the cnn model.')
       tf.reset_default_graph()  
       loss,optimizer,init,x,y = cnn_model_fn(mode,Config_dic)
       # Getting the list of all trainable variables
