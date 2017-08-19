@@ -31,6 +31,8 @@ Depth_lyr3 = config.getint("model", "Depth_lyr3")
 learn_rate = config.getfloat("training", "learn_rate")
 epochs = config.getint("training", "epochs")
 batch_size = config.getint("training", "batch_size")
+Train_2_Valid = config.getfloat("training", "Train_2_Valid")
+Multiplier = config.getfloat("training", "Multiplier")
 
 #paths
 write_train_path = config.get("paths", "save_train_set")
@@ -53,6 +55,8 @@ Config_dic= {"Ntrain_ex": Ntrain_ex,
 		"learn_rate": learn_rate,
 		"epochs": epochs,
 		"batch_size": batch_size,
+		"Train_2_Valid": Train_2_Valid,
+		"Multiplier": Multiplier,
 		"write_train_path": write_train_path,
 		"save_learned": save_learned}
 

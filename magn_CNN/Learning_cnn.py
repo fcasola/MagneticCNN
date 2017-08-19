@@ -9,6 +9,7 @@ import tensorflow as tf
 import math as mt
 import progressbar 
 import os
+import argparse as ap
 import time
 from tensorflow.contrib import learn
 import Create_TrainingCNN as ct
@@ -49,7 +50,7 @@ def upscaling(matr_in,factor,indim):
         h_fin = tf.reshape(g, [-1,indim[0]*2, indim[1]*2, indim[2]])
         return upscaling(h_fin,factor-1,[2*indim[0], 2*indim[1], indim[2]])
 
-def cnn_model_fn(mode, Config_dic):   
+def cnn_model_fn(mode,Config_dic):   
   """
     Model function for magnetic CNN.
     This function implements the convolutional neural net model 
@@ -207,15 +208,27 @@ def cnn_model_fn(mode, Config_dic):
   return (loss,optimizer,init,x,y)
 
 
-def run_training(loss,optimizer,init,x,y,features,targets,session_datafile):
+def run_training(loss,optimizer,init,x,y,features,targets,Config_dic,session_datafile):
+  """
+  Function running training on a specified dataset.
+  Input parameters are:
+      *loss,optimizer,init,x,y - specified tensorflow loss, optimizer,  Op that initializes global variables, 
+      input and output placeholders of the graph
+      *features, targets - dictionary-fed x and y. Dimensions depends on batch size Bs
+      as [Bs,Npim x Npim], with Npim x Npim the total number of pixels in the training images
+      *Config_dic - COnfiguration dictionary containing "batch_size" and "epochs"
+      *session_datafile - Filename prefix to save training   
+   
+  Returns
+  ----------
+     - None. Saves training and loss[Epochs] files
+
+  """
   # Saving the loss  
   costv=[]
-  # randomly picking the data
-  # seed = 128
-  # rng = np.random.RandomState(seed)  
   # Starting the saver
   saver = tf.train.Saver()
-  # starting the session
+  # Starting the session
   with tf.Session() as sess: 
       sess.run(init)
       # training cycle;
@@ -225,13 +238,11 @@ def run_training(loss,optimizer,init,x,y,features,targets,session_datafile):
           avg_cost = 0
           total_batch = int(features.shape[0]/Config_dic["batch_size"])
           for i in range(total_batch):
-              #batch_mask = rng.choice(bz_sel.shape[0], Config_dic["batch_size"])
+              # Create batches
               batch_feat = features[i*Config_dic["batch_size"]: \
                                    (i+1)*Config_dic["batch_size"]]
               batch_trg = targets[i*Config_dic["batch_size"]: \
                                    (i+1)*Config_dic["batch_size"]]
-              #batch_feat = bz_sel[batch_mask,:]
-              #batch_trg = m_sel[batch_mask,:]       
               # Minimizer   
               _, BatchLoss = sess.run([optimizer, loss], feed_dict={x: batch_feat, y: batch_trg})
     
@@ -239,19 +250,20 @@ def run_training(loss,optimizer,init,x,y,features,targets,session_datafile):
               
           print("\nEpoch:", (epoch+1), "cost =", "{:.5f}".format(avg_cost))              
           costv.append(avg_cost)    
-      print('Saving training')
+      print('Saving training data.')
       Loss_dic={"loss":np.array(costv)}
-      ct.save_to_hdf5(Loss_dic,  data_filename + '_Loss.h5')
-      save_path = saver.save(sess, session_datafile) # .ckpt file   
+      ct.save_to_hdf5(Loss_dic,  session_datafile + '_Loss.h5')
+      save_path = saver.save(sess, session_datafile)   
       print('Training complete!')
       
-
-# write a function that loads from file using saver.restore(sess, "/tmp/model.ckpt")
-
 if __name__ == "__main__":
-  # Load training and eval data 
-  # this section is hard-coded... not completed
+  # Training the magnetic convolutional neural net (MCNN)
+  # Parsing the input
   print('-'*10 + 'Learning algorithm' + '-'*10 + '\n')
+  parser = ap.ArgumentParser(description='Training a CNN for magnetic problems.')
+  parser.add_argument('-o',"--Output", metavar='',help='Filename prefix for saving tensorflow output', \
+                        default='Learned_mod_'+time.strftime("%d_%m_%Y"),type=str)
+  args = vars(parser.parse_args())
   
   # get latest modified file in the Training dataset folder
   extension_f = '.h5'
@@ -261,29 +273,31 @@ if __name__ == "__main__":
    for fname in os.listdir(directory):
        if fname.endswith(extension_f):     
            list_of_files.append(os.path.join(directory,fname))
+   # If *.h5 datasets have been found, load the latest modified one
    if len(list_of_files) !=0:           
-       mode = 'train'           
-      # Loading from the latest file saved  
+       mode = 'train'       
+       # Get latest modified file
        latest_file = max(list_of_files, key=os.path.getctime)
-       print('The dataset\n: ' + latest_file + '\n will be used for training\n')
+       print('The dataset:\n ' + latest_file + '\nwill be used for training\n')
+       # Loading dataset
        loaddataset =  ct.load_from_hdf5(latest_file)
-       itemsel=int(len(loaddataset['Phi'])*3/5)  # only 2/5 data picked
-       #bz_sel = loaddataset["Bz"][0:itemsel][:].reshape((-1,mapdim,mapdim))
-       #m_sel = loaddataset["mloc"][0:itemsel][:].reshape((-1,mapdim,mapdim))
-       bz_sel = np.float32(1e15*loaddataset["Bz"][0:itemsel][:])
+       # select data used for Training vs Validation
+       itemsel=int(len(loaddataset['Phi'])*Config_dic["Train_2_Valid"]) 
+       bz_sel = np.float32(Config_dic["Multiplier"]*loaddataset["Bz"][0:itemsel][:])
        m_sel = np.float32(loaddataset["mloc"][0:itemsel][:])  
        #phi = loaddataset["Phi"][itemsel][:]
        #tht = loaddataset["Theta"][itemsel][:]   
    else:
        # folder is empty
+       print('\nTraining directory is empty.\n')
        mode = 'exit'
   else:
+   # Dataset directory does not exist  
+   print('\nTraining directory does not exist.\n')
    mode = 'exit'
 
   if mode == learn.ModeKeys.TRAIN:
     print("training started...\n")
-    args={} # this should come from parsing.. to be done
-    args["Output"] = 'Learned_mod_'+time.strftime("%d_%m_%Y")
 
     # check if trained models are there already    
     extension_f = '.meta'
@@ -295,19 +309,17 @@ if __name__ == "__main__":
       # Initialize the model and the related variables
       print('\n1/2 - Creating the cnn model.')
       tf.reset_default_graph()  
+      # Create the graph
       loss,optimizer,init,x,y = cnn_model_fn(mode,Config_dic)
-      # Getting the list of all trainable variables
-      tvar = tf.trainable_variables()  
       # Running the training
       print('Done!\n')
       print('2/2 - Executing the training\n')
       print('Epochs: %4d Batch size: %4d Learn rate: %6.4f Dataset size: %5d \n' \
             %(Config_dic["epochs"],Config_dic["batch_size"],Config_dic["learn_rate"],itemsel))
-      run_training(loss,optimizer,init,x,y,bz_sel,m_sel,data_filename)
+      run_training(loss,optimizer,init,x,y,bz_sel,m_sel,Config_dic,data_filename)
       print('Done!\n')
     else:
-        print('\n No new learning data produced.\n \
-              The most recent file will be used in predictions.')            
+        print('\n Ok. The most recent file will be used in predictions.')            
   elif mode == 'exit':  
     print('No dataset available for training.')    
   else:
