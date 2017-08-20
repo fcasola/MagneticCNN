@@ -37,6 +37,7 @@ Multiplier = config.getfloat("training", "Multiplier")
 #paths
 write_train_path = config.get("paths", "save_train_set")
 save_learned = config.get("paths", "save_learned")
+save_predictions = config.get("paths", "save_predictions")
 
 # create a dictionary that stores them all
 Config_dic= {"Ntrain_ex": Ntrain_ex,
@@ -58,5 +59,6 @@ Config_dic= {"Ntrain_ex": Ntrain_ex,
 		"Train_2_Valid": Train_2_Valid,
 		"Multiplier": Multiplier,
 		"write_train_path": write_train_path,
-		"save_learned": save_learned}
+		"save_learned": save_learned,
+		"save_predictions": save_predictions}
 

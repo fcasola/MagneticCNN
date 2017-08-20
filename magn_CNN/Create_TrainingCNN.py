@@ -15,7 +15,7 @@ import scipy.ndimage as ndimage
 import time
 from config import *
 
-def Array_pad(xax,yax,mx,my,mz,dnv):
+def Array_pad(xax,yax,mx,my,mz,dnv,Ng):
     """
     Padding the x,y-axes and the magnetization maps 
     Done to avoid finite-size effects
@@ -23,8 +23,8 @@ def Array_pad(xax,yax,mx,my,mz,dnv):
     ##
     # x and y axes
     ##
-    Ng = 30
-    Extension_gr = Ng*dnv
+    Extension_gr_x = Ng[0]*dnv
+    Extension_gr_y = Ng[1]*dnv
     ## center axes
     xax_sh = xax-np.mean(xax)
     yax_sh = yax-np.mean(yax)
@@ -34,8 +34,8 @@ def Array_pad(xax,yax,mx,my,mz,dnv):
     dx = xax[-1]-xax[-2]
     dy = yax[-1]-yax[-2]
     ## compute extension
-    ext_x = (Extension_gr-x_ext)*((Extension_gr-x_ext)>0)
-    ext_y = (Extension_gr-y_ext)*((Extension_gr-y_ext)>0)
+    ext_x = (Extension_gr_x-x_ext)*((Extension_gr_x-x_ext)>0)
+    ext_y = (Extension_gr_y-y_ext)*((Extension_gr_y-y_ext)>0)
     Nptsx = int(ext_x/dx)
     Nptsy = int(ext_y/dy)    
     ## padding X    
@@ -50,8 +50,11 @@ def Array_pad(xax,yax,mx,my,mz,dnv):
     ##
     # mx,my,mz - zero padding out of boundaries for convergence
     ##
-    mx_long = np.pad(mx,((Nptsy,Nptsy),(Nptsx,Nptsx)),'constant')
-    my_long = np.pad(my,((Nptsy,Nptsy),(Nptsx,Nptsx)),'constant')
+    mx_long = None
+    my_long = None
+    if mx != None and my != None:
+        mx_long = np.pad(mx,((Nptsy,Nptsy),(Nptsx,Nptsx)),'constant')
+        my_long = np.pad(my,((Nptsy,Nptsy),(Nptsx,Nptsx)),'constant')
     mz_long = np.pad(mz,((Nptsy,Nptsy),(Nptsx,Nptsx)),'constant')
     
     return (x_long,y_long,mx_long,my_long,mz_long,Nptsx,Nptsy)
@@ -77,8 +80,9 @@ def Compute_Bz(xax,yax,t,Ms,dnv,mx,my,mz):
     ----------
         - Bz, the out of plane component of the magnetic field
     """    
-    # Extending the domain
-    x_long,y_long,mx_long,my_long,mz_long,Nptsx,Nptsy = Array_pad(xax,yax,mx,my,mz,dnv)
+    # Extending the domain for finite element calculations
+    Ng = [40,40]
+    x_long,y_long,mx_long,my_long,mz_long,Nptsx,Nptsy = Array_pad(xax,yax,mx,my,mz,dnv,Ng)
     # Computing PSFs (Point Spread Functions)
     # Evaluating shape of the resolution functions
     # for the convolution    
