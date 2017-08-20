@@ -59,7 +59,7 @@ def check_write_file(map2write,fname):
         max_matr = 1
         # convert the map
         if np.any(map2write>1) or np.any(map2write<0):
-            warnings.warn("\nWarning! predicted m nominally out of 0-1 limits. Clipping imposed.")            
+            print("\nWarning! predicted m nominally out of 0-1 limits. Clipping imposed.")            
             map2write[map2write>1]=1
             map2write[map2write<0]=0       
         mapPngready = (0 + 255*(map2write-min_matr)/(max_matr-min_matr)).astype(int)
@@ -92,7 +92,8 @@ def interp2d_cnn(x_in,y_in,z_in,argin):
     sz2 = [i*dnv for i in D1]
     if sz1[0]<sz2[0] or sz1[1]<sz2[1]:
         warnings.warn("\nWarning! input image size is bigger than current cnn definition.\n\
-                      Input image will be cut to satisfy requirements.")
+                      Input image will be cut to satisfy requirements.\n\
+                      Train a larger CNN!")
     # interpolate 
     f_int = scpi.interp2d(x_inc,y_inc,z_in,bounds_error=False)
     z_inter_out = f_int(x0_c, y0_c)                  
@@ -158,7 +159,6 @@ def predict_out(bz_scl_int,filelearning,x0,y0,x_var,y_var):
 if __name__ == "__main__":
     # Module predicting the magnetization distribution given the stray field
     # Parsing the input
-    """
     parser = ap.ArgumentParser(description='\
     Making predictions based on the trained cnn.\n\
     The module takes as input an 8-bit pixels, black and white png image\n\
@@ -182,32 +182,26 @@ if __name__ == "__main__":
                          required=True,type=float)
     parser.add_argument('-ms', '--Ms', metavar='', help='Maximum scalar value for the nominal saturation magnetization of\nthe layer [in A/m].', \
                          required=True,type=float)    
-    args = vars(parser.parse_args())
-    """
-    args['Image'] = 'test'
-    args['XYrange'] = (3e-7,3e-7)
-    args['Caxrange'] = (-18.45,18.437)
-    args['Distance'] = 10e-9
-    args['thickness'] = 1e-9
-    args['Ms'] = 1e5
-    
+    args = vars(parser.parse_args())    
 
     # Welcome message
     print('-'*10 + 'Prediction algorithm' + '-'*10 + '\n')    
     # check filename is there
     x_var,y_var,bz_read = check_read_file(args)
     
+    
     if bz_read is not None:
         # test image scale and convert to Config_dic["img_size"] dimensions         
         x_long,y_long,_,_,bz_long,_,_ = ct.Array_pad(x_var,y_var,None,None,bz_read, \
-                                                       args['Distance'],Config_dic["img_size"])
+                                                       args['Distance'],Config_dic["img_size"])        
         # interpolate within the proper grid
         x0,y0,bz_scl_int = interp2d_cnn(x_long,y_long,bz_long,args)   
+                
         # get latest available training
         latest_file = check_training_avail()
         if latest_file != None:
             # run predictions
-            pred_cnn = predict_out(bz_scl_int,latest_file,x0,y0,x_var,y_var)    
+            pred_cnn = predict_out(bz_scl_int,latest_file,x0,y0,x_var-x_var.mean(),y_var-y_var.mean())    
             # save to file
             check_write_file(pred_cnn,args['Image'] + '_predicted')
             

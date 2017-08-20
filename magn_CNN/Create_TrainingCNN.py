@@ -39,12 +39,12 @@ def Array_pad(xax,yax,mx,my,mz,dnv,Ng):
     Nptsx = int(ext_x/dx)
     Nptsy = int(ext_y/dy)    
     ## padding X    
-    str_x = xax[0]-Nptsx*dx
-    end_x = xax[-1]+Nptsx*dx
+    str_x = xax_sh[0]-Nptsx*dx
+    end_x = xax_sh[-1]+Nptsx*dx
     x_long = np.pad(xax_sh,Nptsx,'linear_ramp',end_values=(str_x,end_x))
     ## padding Y
-    str_y = yax[0]-Nptsy*dy
-    end_y = yax[-1]+Nptsy*dy
+    str_y = yax_sh[0]-Nptsy*dy
+    end_y = yax_sh[-1]+Nptsy*dy
     y_long = np.pad(yax_sh,Nptsy,'linear_ramp',end_values=(str_y,end_y))
     
     ##
