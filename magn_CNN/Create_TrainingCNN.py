@@ -52,7 +52,7 @@ def Array_pad(xax,yax,mx,my,mz,dnv,Ng):
     ##
     mx_long = None
     my_long = None
-    if mx != None and my != None:
+    if mx is not None and my is not None:
         mx_long = np.pad(mx,((Nptsy,Nptsy),(Nptsx,Nptsx)),'constant')
         my_long = np.pad(my,((Nptsy,Nptsy),(Nptsx,Nptsx)),'constant')
     mz_long = np.pad(mz,((Nptsy,Nptsy),(Nptsx,Nptsx)),'constant')

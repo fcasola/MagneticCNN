@@ -13,8 +13,10 @@ import argparse as ap
 import scipy.interpolate as scpi
 import warnings
 import tensorflow as tf
+import time
 # personal modules
 from config import *
+from config_example import *
 import Create_TrainingCNN as ct
 
 # Reduce verbosity of tensorflow
@@ -49,24 +51,25 @@ def check_read_file(argin):
         print('File does not exist.')
         return (None,None,None)
     
-def check_write_file(map2write,fname):
+def check_write_file(map2write,fname,limw):
     """
     write predicted map back to png
     """
     fname_full = Config_dic["save_predictions"] + '\\' + fname + '.png'
-    if os.path.exists(Config_dic["save_predictions"]):
-        min_matr = 0
-        max_matr = 1
-        # convert the map
-        if np.any(map2write>1) or np.any(map2write<0):
-            print("\nWarning! predicted m nominally out of 0-1 limits. Clipping imposed.")            
-            map2write[map2write>1]=1
-            map2write[map2write<0]=0       
-        mapPngready = (0 + 255*(map2write-min_matr)/(max_matr-min_matr)).astype(int)
-        # Save as png
-        scp.imsave(fname_full, mapPngready)
-    else:
-        print('Writing directory does not exists.')
+    # Check directory 
+    if not os.path.exists(Config_dic["save_predictions"]):        
+        os.makedirs(Config_dic["save_predictions"])        
+    # Save the figure    
+    min_matr = limw[0]
+    max_matr = limw[1]
+    # convert the map
+    if np.any(map2write>max_matr) or np.any(map2write<min_matr):
+        print("\nWarning! predicted m nominally out of limits. Clipping imposed.")            
+        map2write[map2write>max_matr]=max_matr
+        map2write[map2write<min_matr]=min_matr       
+    mapPngready = (0 + 255*(map2write-min_matr)/(max_matr-min_matr)).astype(int)
+    # Save as png
+    scp.imsave(fname_full, mapPngready)
     
 
 def interp2d_cnn(x_in,y_in,z_in,argin):
@@ -135,7 +138,7 @@ def predict_out(bz_scl_int,filelearning,x0,y0,x_var,y_var):
     # start tensorflow session
     with tf.Session() as sess: 
         # prediction started
-        print('Loading trained tensorflow variables.\n')
+        print('1/2 - Loading trained tensorflow variables.\n')
         # Recreate the network
         saver = tf.train.import_meta_graph(filelearning)      
         # load the parameters for the trained graph
@@ -144,7 +147,7 @@ def predict_out(bz_scl_int,filelearning,x0,y0,x_var,y_var):
         # Get output function from the saved collection		
         output_fn = tf.get_collection("output_net")[0]    
         # Compute the actual prediction
-        print('\nComputing prediction.\n')
+        print('\n2/2 - Computing prediction.\n')
         outbasedonin = sess.run(output_fn, feed_dict = {'x:0': input_graph})
         # Reshape according to original pixel size
         predmap = outbasedonin.reshape(Config_dic["img_size"])    
@@ -152,8 +155,78 @@ def predict_out(bz_scl_int,filelearning,x0,y0,x_var,y_var):
         f_int_2 = scpi.interp2d(x0,y0,predmap,kind='linear',bounds_error=False)
         m_interp_in = f_int_2(x_var,y_var)     
     # return m interpolated
-    return m_interp_in        
+    return m_interp_in  
     
+
+def initialize_example():
+    '''
+    Example initialization 
+    '''
+    # Welcome message
+    print('-'*10 + 'Running test-mode' + '-'*10 + '\n')    
+    print('Generating artificial input/output of the cnn based on config_example.py.\n\
+    After that, the code runs a prediction based on the trained cnn.\n')
+    # define dictionary of parameters
+    pars_ex = {}
+    # polar angle of the magnetization
+    pars_ex['Polar_angle'] = Config_dic_example['Polar_angle']*(mt.pi/180)
+    # azimuthal angle of the magnetization
+    pars_ex['Azimuthal_angle'] = Config_dic_example['Azimuthal_angle']*(mt.pi/180)
+    # distance of the sensor
+    pars_ex['dist_pl'] = Config_dic_example['dist_pl']
+    # thickness of the magnetic layer (must be <dnv)
+    pars_ex['thickness_layer'] = Config_dic_example['thickness_layer']
+    # Saturation magnetization in A/m
+    pars_ex['Saturat_magnetiz'] = Config_dic_example['Saturat_magnetiz']
+    # domain axes
+    pars_ex['xy_range'] = Config_dic_example['xy_range']
+    # ellipse properties
+    e_max = Config_dic_example['e_max']*pars_ex['dist_pl'] # ellipse semiaxis dimensionality
+    e_ax = [1,Config_dic_example['e_min']/Config_dic_example['e_max']] # major and minor ellipse semiaxes in e_amax units
+    e_tilt = [Config_dic_example['e_tilt']*(mt.pi/180)] # tilt of the ellipse
+    e_centr = Config_dic_example['e_center'] # ellipse center (scaled to x,y-span)
+    
+    # Define the shape and print it to a file    
+    numpxl = pars_ex['xy_range']
+    dnv = pars_ex['dist_pl']
+    t = pars_ex['thickness_layer']
+    Ms = pars_ex['Saturat_magnetiz'] 
+    denser_pt = Config_dic['finer_grid'] 
+    theta = pars_ex['Polar_angle']
+    phi = pars_ex['Azimuthal_angle']
+    
+    # spatial dimension of the map
+    x_var = np.linspace(-(numpxl[0]//2)*dnv,(numpxl[0]//2)*dnv,numpxl[0]*denser_pt)
+    y_var = np.linspace(-(numpxl[1]//2)*dnv,(numpxl[1]//2)*dnv,numpxl[1]*denser_pt)
+    xx,yy = np.meshgrid(x_var,y_var)
+    print('1/2 - Creating the magnetization shape and computing the field\n')
+    # create random shapes to train the CNN
+    mabs = ct.return_shape(e_max,e_ax+e_tilt+e_centr,[numpxl[0]*denser_pt, numpxl[1]*denser_pt],xx,yy)
+    # compute the stray field from this map
+    mx = mabs*mt.sin(theta)*mt.cos(phi)
+    my = mabs*mt.sin(theta)*mt.sin(phi)
+    mz = mabs*mt.cos(theta)             
+    bz_test = ct.Compute_Bz(x_var-np.mean(x_var),y_var-np.mean(y_var),t,Ms,dnv,mx,my,mz)
+    
+    # Store axes and Bz limits
+    # Tesla to Gauss conversion
+    Tes2Gauss = 1e4
+    bz_test *= Tes2Gauss
+    # Store axes anf field limits of the maps
+    pars_ex['bz_ext'] = [bz_test.min(), bz_test.max()]
+    pars_ex['axes_ext'] = [(x_var[-1] - x_var[0]), (y_var[-1] - y_var[0])]
+    
+    # print both magnetization and Bz to a test file
+    print('2/2 - Saving images in ' + Config_dic["save_predictions"])
+    pars_ex['file_bz'] = 'Test_bz_'+time.strftime("%d_%m_%Y")
+    
+    check_write_file(bz_test,pars_ex['file_bz'],pars_ex['bz_ext'])
+    check_write_file(mabs,'Test_m_'+time.strftime("%d_%m_%Y"),[0,1])
+    
+    print('\nDone! Look in folder ' + Config_dic["save_predictions"]) 
+    print('-'*10 + '-'*16 + '-'*10 + '\n')        
+    
+    return pars_ex
     
 
 if __name__ == "__main__":
@@ -171,19 +244,31 @@ if __name__ == "__main__":
     b/w (0-255) is the min/max of the field in Gauss.\n\
     3 - The output is saved with similar conventions as in 2), where \n\
     now b/w is 0/1 in Ms units. Look at "*_predicted.png"', formatter_class=ap.RawTextHelpFormatter)
-    parser.add_argument('-i', "--Image", metavar='', help="Image name for the stray field.\nThe Image must be in the ''Predictions'' folder.", required=True)
+    parser.add_argument('-e',"--example",default=False, action="store_true", \
+                        help="Creates exemplary Bz data/label for the cnn using a test shape specified in the ''Config'' folder.", required=False)
+    parser.add_argument('-i', "--Image", metavar='', help="Image name for the stray field.\nThe Image must be in the ''Predictions'' folder.", required=False)
     parser.add_argument('-r','--XYrange', nargs=2, metavar=('',''),
-                   help='Spcify width and height of the stray field image [in meters].',required=True,type=float)   
+                   help='Spcify width and height of the stray field image [in meters].',required=False,type=float)   
     parser.add_argument('-c','--Caxrange', nargs=2, metavar=('',''),
-                   help='Spcify minimum and maximum value of the field [in Gauss].',required=True,type=float)   
+                   help='Spcify minimum and maximum value of the field [in Gauss].',required=False,type=float)   
     parser.add_argument('-d', '--Distance', metavar='', help='Distance of the stray field to the magnetization plane [in meters].', \
-                         required=True,type=float)
+                         required=False,type=float)
     parser.add_argument('-t', '--thickness', metavar='', help='Thickness of the magnetic layer [in meters].', \
-                         required=True,type=float)
+                         required=False,type=float)
     parser.add_argument('-ms', '--Ms', metavar='', help='Maximum scalar value for the nominal saturation magnetization of\nthe layer [in A/m].', \
-                         required=True,type=float)    
+                         required=False,type=float)    
     args = vars(parser.parse_args())    
 
+    if args['example'] is True:
+        dic_pars_exe= initialize_example()
+        args['Image'] = dic_pars_exe['file_bz']
+        args['XYrange'] = dic_pars_exe['axes_ext'] 
+        args['Caxrange'] = dic_pars_exe['bz_ext']
+        args['Distance'] = dic_pars_exe['dist_pl']
+        args['thickness'] = dic_pars_exe['thickness_layer']
+        args['Ms'] = dic_pars_exe['Saturat_magnetiz']
+        
+      
     # Welcome message
     print('-'*10 + 'Prediction algorithm' + '-'*10 + '\n')    
     # check filename is there
@@ -203,14 +288,14 @@ if __name__ == "__main__":
             # run predictions
             pred_cnn = predict_out(bz_scl_int,latest_file,x0,y0,x_var-x_var.mean(),y_var-y_var.mean())    
             # save to file
-            check_write_file(pred_cnn,args['Image'] + '_predicted')
+            check_write_file(pred_cnn,args['Image'] + '_m_predicted',[0,1])
             
     #end
     print('Done! Look in folder ' + Config_dic["save_predictions"]) 
     print('-'*10 + '-'*16 + '-'*10 + '\n')        
                 
     
-    
+
     
     
     
