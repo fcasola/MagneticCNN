@@ -20,6 +20,9 @@ In this first version, the magnetization is assumed to be collinear but
 its orientation and spatial distribution is not known and will be the target 
 of the learning process.
 
+## Model
+![Alt text](readme_img/Scheme_cnn.png?raw=true "model for the convolutional net implemented")
+
 ### Prerequisites
 ```
 Written for python 3
