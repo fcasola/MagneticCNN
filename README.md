@@ -130,7 +130,7 @@ save_predictions: ..\data\Predictions
 ```
 
 ### About the modules
-'''
+```
 # Create_TrainingCNN.py 
 Produces the training set generating 2D magnetization patterns,
 chosen to be ellipses of random axes and tilt. The module contains 
@@ -182,8 +182,7 @@ optional arguments:
   -t , --thickness    Thickness of the magnetic layer [in meters].
   -ms , --Ms          Maximum scalar value for the nominal saturation magnetization of
                       the layer [in A/m].
-'''
-
+```
 ## Results
 
 ![Alt text](readme_img/results_1.png?raw=true "Target magnetization (left). Stray field input to the CNN (center) and interpolated output using the current training (right).")
