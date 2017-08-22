@@ -44,35 +44,41 @@ The .h5 dataset is then fed for training into a cnn mimicking the one in https:/
 - [argparse](https://docs.python.org/3/library/argparse.html)
 
 ### Installing
-```
 First, do:
 
+```
 git clone https://github.com/fcasola/MagneticCNN 
+```
 
 To facilitate use, a test dataset and learning parameters are already included in this github version.
 To train the CNN yourself, run the following command:
 
+```
 cd MagneticCNN/bin
 python magnetic_cnn
+```
 
 The CNN will be trained according to the parameters contained in the configuration file data/Config/config_training.cfg.
 
 To run predictions, prepare a .png image with the stray field, place it in the folder MagneticCNN\data\Predictions and follow the help of:
 
+```
 cd MagneticCNN/magn_CNN
 python Predict_cnn.py -h
+```
 
 A simple example can run by typing:
 
+```
 cd MagneticCNN/magn_CNN
 python Predict_cnn.py -e
+```
 
 The example will be reconstructing an elliptical magnetization shape for the magnetization as defined in data/Config/test_shape.cfg. You can change the shape and the magnetization orientation yourself and have fun with the CNN!!
 The result for the default case is shown in the section 'Results' below.
 
 All predictions will be saved in the folder data/Learned
 
-```
 ### A few words about the modules
 ```
 # Create_TrainingCNN.py 
