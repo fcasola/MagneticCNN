@@ -2,34 +2,37 @@
 Convolutional Neural Nets for magnetism problems.
 
 ## Aim
-This code tests whether CNNs can "learn" the laws of magnetism
-and are capable of reconstructing magnetization patterns given the field 
-that they produce.
+Computing the magnetic field produced by a certain magnetization pattern is a task routinely performed by many available [numerical routines](http://math.nist.gov/oommf/), with applications ranging from science to engineering. What about the opposite calculation instead? Is it possible, in general, to reconstruct a certain magnetization pattern given the field it produces?
 
-This code is inspired by recent publications addressing the possibility 
-of machine learning algorithms to learn the laws of physics, e.g.:
-
-https://arxiv.org/pdf/1607.03597.pdf
-
-For the particular case of magnetism, we start from the formalism 
-derived by us in a recent publication at Harvard:
+We have recently been the first to answer this question and studied the related math in one of our publications at Harvard:
 
 https://arxiv.org/abs/1611.00673
 
-In this first version, the magnetization is assumed to be collinear but
-its orientation and spatial distribution is not known and will be the target 
-of the learning process.
+Turns out that obtaining the manifold of solutions in the general case is an extremely non-trivial task, involving several complex numerical variational minimizations.
+
+Here we test the possibility of having a general, single piece of code capable of performing this task making use of the power of convolutional neural networks ([CNNs](https://en.wikipedia.org/wiki/Convolutional_neural_network)). 
+We test the capability of CNNs of "learning" the laws of magnetism and perform for us all the related image processing operations.
+
+This code is inspired by recent publications addressing the possibility of machine learning algorithms to learn other, extremely important for applications, laws of physics, e.g.:
+
+https://arxiv.org/pdf/1607.03597.pdf
+
+In this first version, the code is capable of reconstructing simple collinear magnetization patterns of arbitrary shape and orientation. 
+In the next versions, we will teach our CNN to recognize more complex textures such as spirals, cycloids and all the other structures belonging [to the realm of classical magnetism.](https://arxiv.org/abs/1611.00673) 
 
 ## Model
 
 ![Alt text](readme_img/training_1.png?raw=true "model for the convolutional net implemented")
 
-In the present model, we generate Ns randomly defined magnetization patterns. The magnetization is collinear, has elliptical-like shape (see image above, on a NpxNp = 32x32 pixel grid) and directions in space (parametrized by polar and azimuthal angle q,p) are sampled uniformly. For each magnetization we compute the magnetic field using the "Compute_Bz" function in the "Create_TrainingCNN" module. Data are then saved in a hierarchical data format (.h5) file as [q,p,m,Bz] with dimensions [Ns x (2 + 2* Np**2 )]. The (m,Bz) pair is then used as the (y,x) label/feature of the cnn. 
+In the present model, we start generating Ns randomly defined magnetization patterns. The magnetization is collinear and has an elliptical-like shape (see exemplary image above, showing 3 shapes defined on a NpxNp = 32x32 pixel grid. The magnetization direction in space (parametrized by polar and azimuthal angle q,p) is sampled uniformly over the sphere. 
+
+Next, for each magnetization we compute the out-of-plane component of the magnetic field using the "Compute_Bz" function in the "Create_TrainingCNN" module. Data are then saved in a hierarchical data format (.h5) file as [q,p,m,Bz] with dimensions [Ns x (2 + 2* Np**2 )]. The (m,Bz) pair is then used as the (y,x) label/feature of the cnn.
+
+Importantly, we use dimensional scaling in the images to facilitate the learning process!
  
 ![Alt text](readme_img/Scheme_cnn.png?raw=true "model for the convolutional net implemented")
 
-The .h5 dataset is fed for training into a cnn mimicking the one in https://arxiv.org/pdf/1607.03597.pdf. The scheme for the cnn is in the figure above. At prediction time, the user can feed the network using the module "Predict_cnn" using a lossless .png picture of arbitrary resolution (see python Predict_cnn.py -h for detailed help). A test dataset and learning parameters are already included in this github version.
-
+The .h5 dataset is then fed for training into a cnn mimicking the one in https://arxiv.org/pdf/1607.03597.pdf. The scheme for the cnn is in the figure above. At prediction time, the user can feed the network using the module "Predict_cnn" using a lossless .png picture containing the out-of-plane component of the magnetic field. The png is created such that b/w is the minimum/maximum (Min/Max) value for the magnetic field. Predict_cnn needs to know only the (Min/Max) values and the range of the spatial axes (width/height of the image, see python Predict_cnn.py -h for detailed help).
 
 ### Prerequisites
 
@@ -42,94 +45,35 @@ The .h5 dataset is fed for training into a cnn mimicking the one in https://arxi
 
 ### Installing
 ```
-Dataset and trained model are contained in the folder data/Training and data/Learned but can also be generated by the user by typing: 
+First, do:
 
 git clone https://github.com/fcasola/MagneticCNN 
+
+To facilitate use, a test dataset and learning parameters are already included in this github version.
+To train the CNN yourself, run the following command:
+
 cd MagneticCNN/bin
 python magnetic_cnn
 
-To run predictions type:
+The CNN will be trained according to the parameters contained in the configuration file data/Config/config_training.cfg.
+
+To run predictions, prepare a .png image with the stray field, place it in the folder MagneticCNN\data\Predictions and follow the help of:
 
 cd MagneticCNN/magn_CNN
 python Predict_cnn.py -h
-
-and read the instructions.
 
 A simple example can run by typing:
 
 cd MagneticCNN/magn_CNN
 python Predict_cnn.py -e
 
-The example will be reconstructing the elliptical shape for the magnetization defined in data/Config/test_shape.cfg
-All predictions will be saved and fed from the folder data/Learned
+The example will be reconstructing an elliptical magnetization shape for the magnetization as defined in data/Config/test_shape.cfg. You can change the shape and the magnetization orientation yourself and have fun with the CNN!!
+The result for the default case is shown in the section 'Results' below.
+
+All predictions will be saved in the folder data/Learned
 
 ```
-### Configuration File
-```
-The configuration file is in data/Config/config_training.cfg. 
-You can change it as per your need. 
-
-With the parameters below one can modify the parameters of the whole model.
-Here is what the default configuration file looks like:
-
-[Dataset]
-# Default size of the generated training set in case none is specified
-Ntrain_ex: 5000
-# x,y pixels of the training set
-img_size: [32,32]
-# Specifies the number of points per pixels used to get 
-# more accurate finite-element calculations
-finer_grid: 4
-# Randomly generate training magnetization shapes
-# of max pixel size equivalent to rmax_v
-rmax_v: 5
-
-[model]
-# Activation function for the neurons
-act_type: relu
-# Layer 1
-# Convolution; kernel size and  [Width,Height]
-k_filt_str_lyr1: [3,3]
-# Convolution; number of filters
-Depth_lyr1: 16
-# Pooling for layer and 2: pool size [width,height]
-Pool1_str_lyr1: [2,2]
-# Pooling for layer and 2: pool size [width,height]
-Pool2_str_lyr1: [2,2]
-# Layer 2 
-# Convolution; kernel size and  [Width,Height]
-k_filt_str_lyr2: [3,3]
-# Convolution; number of filters
-Depth_lyr2: 16
-# Layer 3 and subsequents
-# Convolution; kernel size and  [Width,Height]
-k_filt_str_lyr3: [3,3]
-# Convolution; number of filters
-Depth_lyr3: 16
-
-[training]
-# learning rate for the model
-learn_rate: 0.1
-# number of cycles through the whole training set
-epochs: 200
-# batch size for parameters update
-batch_size: 2 
-# ration training to validation model
-Train_2_Valid: 0.6
-# number to rescale small number inputs of the net
-Multiplier: 1e15
-
-[paths]
-# folder where to save training data
-save_train_set: ..\data\Training
-# folder where to save learning data
-save_learned: ..\data\Learned
-# folder where to save prediction data
-save_predictions: ..\data\Predictions
-
-```
-
-### About the modules
+### A few words about the modules
 ```
 # Create_TrainingCNN.py 
 Produces the training set generating 2D magnetization patterns,
@@ -187,7 +131,7 @@ optional arguments:
 
 ![Alt text](readme_img/results_1.png?raw=true "Target magnetization (left). Stray field input to the CNN (center) and interpolated output using the current training (right).")
 
-Target magnetization (left). Stray field input to the CNN (center) and interpolated output using the current training (right)
+Target default magnetization defined in data/Config/test_shape.cfg (left). Stray field input to the CNN (center) and interpolated output using the current training (right)
 
 ![Alt text](readme_img/results_2.png?raw=true "Loss function vs epochs time using the config file parameters specified above.")
 
