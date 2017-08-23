@@ -74,10 +74,10 @@ cd MagneticCNN/magn_CNN
 python Predict_cnn.py -e
 ```
 
-The example will be reconstructing an elliptical magnetization shape for the magnetization as defined in data/Config/test_shape.cfg. You can change the shape and the magnetization orientation yourself and have fun with the CNN!!
+The example will be reconstructing an elliptical shape for the magnetization as defined in data/Config/test_shape.cfg. You can change the shape and the magnetization orientation yourself and have fun with the CNN!!
 The result for the default case is shown in the section 'Results' below.
 
-All predictions will be saved in the folder data/Learned
+All predictions will be saved in the folder data/Predictions
 
 ### A few words about the modules
 ```
