@@ -272,7 +272,7 @@ if __name__ == "__main__":
   if os.path.exists(directory): 
    for fname in os.listdir(directory):
        if fname.endswith(extension_f):     
-           list_of_files.append(os.path.join(directory,fname))
+           list_of_files.append(os.path.join(directory,fname).replace("\\","/"))
    # If *.h5 datasets have been found, load the latest modified one
    if len(list_of_files) !=0:           
        mode = 'train'       
@@ -302,7 +302,7 @@ if __name__ == "__main__":
     # check if trained models are there already    
     extension_f = '.meta'
     directory = Config_dic["save_learned"]
-    data_filename = os.path.join(directory,args["Output"])
+    data_filename = os.path.join(directory,args["Output"]).replace("\\","/")
     Proc_furth = ct.check_proceed(directory,data_filename,extension_f)    
 
     if Proc_furth==1:       

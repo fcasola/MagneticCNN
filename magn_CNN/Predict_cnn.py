@@ -113,7 +113,7 @@ def check_training_avail():
     if os.path.exists(directory): 
         for fname in os.listdir(directory):
             if fname.endswith(extension_f):  
-                list_of_files.append(os.path.join(directory,fname))
+                list_of_files.append(os.path.join(directory,fname).replace("\\","/"))
     # If *.meta files have been found, load the latest modified one
     if len(list_of_files) !=0:           
         # get latest modifield file

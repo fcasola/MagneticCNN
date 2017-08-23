@@ -258,7 +258,7 @@ if __name__ == "__main__":
     # these parameters are chosen for convenience
     extension_f = '.h5'
     directory = Config_dic["write_train_path"]
-    data_filename = os.path.join(directory,args["Output"] + '.h5')
+    data_filename = os.path.join(directory,args["Output"] + '.h5').replace("\\","/") # replace() to go cross-platform
     Proc_furth = check_proceed(directory,data_filename,extension_f)
          
     if Proc_furth==1: 
