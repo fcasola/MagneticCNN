@@ -142,7 +142,7 @@ def predict_out(bz_scl_int,filelearning,x0,y0,x_var,y_var):
         # Recreate the network
         saver = tf.train.import_meta_graph(filelearning)      
         # load the parameters for the trained graph
-        directory = Config_dic["save_learned"]+'\\' 
+        directory = Config_dic["save_learned"] 
         saver.restore(sess, tf.train.latest_checkpoint(directory))
         # Get output function from the saved collection		
         output_fn = tf.get_collection("output_net")[0]    
