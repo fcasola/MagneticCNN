@@ -108,7 +108,7 @@ def check_training_avail():
     check that a training has been saved
     """
     extension_f = '.meta'
-    directory = Config_dic["save_learned"]+'/'  
+    directory = Config_dic["save_learned"]  
     list_of_files = []
     if os.path.exists(directory): 
         for fname in os.listdir(directory):
