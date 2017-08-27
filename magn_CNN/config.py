@@ -34,6 +34,11 @@ batch_size = config.getint("training", "batch_size")
 Train_2_Valid = config.getfloat("training", "Train_2_Valid")
 Multiplier = config.getfloat("training", "Multiplier")
 
+#cluster mode
+Script_mode = config.getboolean("cluster", "Script_mode")
+Dst_ovwr = config.getboolean("cluster", "Dst_ovwr")
+Model_ovwr = config.getboolean("cluster", "Model_ovwr")
+
 #paths
 write_train_path = config.get("paths", "save_train_set")
 save_learned = config.get("paths", "save_learned")
@@ -58,6 +63,9 @@ Config_dic= {"Ntrain_ex": Ntrain_ex,
 		"batch_size": batch_size,
 		"Train_2_Valid": Train_2_Valid,
 		"Multiplier": Multiplier,
+		"Script_mode": Script_mode,
+		"Dst_ovwr": Dst_ovwr,
+		"Model_ovwr": Model_ovwr,		
 		"write_train_path": write_train_path,
 		"save_learned": save_learned,
 		"save_predictions": save_predictions}

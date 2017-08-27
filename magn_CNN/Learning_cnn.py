@@ -303,9 +303,9 @@ if __name__ == "__main__":
     extension_f = '.meta'
     directory = Config_dic["save_learned"]
     data_filename = os.path.join(directory,args["Output"]).replace("\\","/")
-    Proc_furth = ct.check_proceed(directory,data_filename,extension_f)    
+    Proc_furth = ct.check_proceed(directory,data_filename,extension_f,'Model_ovwr')    
 
-    if Proc_furth==1:       
+    if Proc_furth==True:       
       # Initialize the model and the related variables
       print('\n1/2 - Creating the cnn model.')
       tf.reset_default_graph()  
@@ -319,7 +319,7 @@ if __name__ == "__main__":
       run_training(loss,optimizer,init,x,y,bz_sel,m_sel,Config_dic,data_filename)
       print('Done!\n')
     else:
-        print('\n Ok. The most recent file will be used in predictions.')            
+        print('\nThe most recent file will be used in predictions.')            
   elif mode == 'exit':  
     print('No dataset available for training.')    
   else:

@@ -218,9 +218,9 @@ def question_to_write(list_of_files,data_filename,mexg1,mexg2):
     else:
        print("Please respond with 'yes' or 'no'")
 
-def check_proceed(directory,data_filename,extension_f):
+def check_proceed(directory,data_filename,extension_f,script_dec):
     # check if training data are there already
-    Proc_furth = 0    
+    Proc_furth = False    
     list_of_files=[]
     mexg1= 'The following file/files are already available:\n'
     mexg2= 'Should I create a new file called:\n' \
@@ -231,14 +231,17 @@ def check_proceed(directory,data_filename,extension_f):
                list_of_files.append(fname)
        if len(list_of_files) !=0:        
            rep = None
-           while rep==None:
-               rep = question_to_write(list_of_files,data_filename,mexg1,mexg2)
-           Proc_furth= int(rep)                      
+           if Config_dic['Script_mode'] == True:
+               Proc_furth = Config_dic[script_dec]
+           else:
+               while rep==None:
+                   rep = question_to_write(list_of_files,data_filename,mexg1,mexg2)
+               Proc_furth= rep
        else:
-           Proc_furth=1
+           Proc_furth= True
     else:                          
         os.makedirs(directory) 
-        Proc_furth = 1
+        Proc_furth = True
     return Proc_furth        
     
 if __name__ == "__main__":
@@ -259,9 +262,9 @@ if __name__ == "__main__":
     extension_f = '.h5'
     directory = Config_dic["write_train_path"]
     data_filename = os.path.join(directory,args["Output"] + '.h5').replace("\\","/") # replace() to go cross-platform
-    Proc_furth = check_proceed(directory,data_filename,extension_f)
+    Proc_furth = check_proceed(directory,data_filename,extension_f,'Dst_ovwr')
          
-    if Proc_furth==1: 
+    if Proc_furth==True: 
         # Map parameters
         D0 = Config_dic["img_size"] #  Dimensions for the Training data; from config file
         incdens = Config_dic["finer_grid"] # grid density increase; from config file
@@ -313,7 +316,7 @@ if __name__ == "__main__":
         save_to_hdf5(DictInit, data_filename)
         print('Done!')
     else:
-        print('\n Ok. The most recent *.h5 file will be used in training.')
+        print('\nThe most recent *.h5 file will be used in training.')
     
     print('-'*10 + '-'*16 + '-'*10 + '\n')
         
