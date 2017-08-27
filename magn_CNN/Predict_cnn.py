@@ -31,8 +31,10 @@ def check_read_file(argin):
     dnv = argin['Distance'] 
     t = argin['thickness']
     Ms = argin['Ms']
-    XYrange = argin['XYrange']
-    fname_full = Config_dic["save_predictions"] + '/' + fname + '.png'
+    XYrange = argin['XYrange']    
+    directory = Config_dic["save_predictions"]
+    fname_full = os.path.join(directory,fname + '.png').replace("\\","/")
+    
     if os.path.isfile(fname_full):
         min_matr = climits[0]
         max_matr = climits[1]
@@ -55,7 +57,8 @@ def check_write_file(map2write,fname,limw):
     """
     write predicted map back to png
     """
-    fname_full = Config_dic["save_predictions"] + '/' + fname + '.png'
+    directory = Config_dic["save_predictions"]
+    fname_full = os.path.join(directory,fname + '.png').replace("\\","/")
     # Check directory 
     if not os.path.exists(Config_dic["save_predictions"]):        
         os.makedirs(Config_dic["save_predictions"])        
