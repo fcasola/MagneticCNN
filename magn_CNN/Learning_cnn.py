@@ -309,8 +309,16 @@ if __name__ == "__main__":
       # Initialize the model and the related variables
       print('\n1/2 - Creating the cnn model.')
       tf.reset_default_graph()  
+      
+      # check if GPU
+      device_name = ''
+      if device_name == "gpu":
+          device_name = "/gpu:0"
+      else:
+          device_name = "/cpu:0"      
       # Create the graph
-      loss,optimizer,init,x,y = cnn_model_fn(mode,Config_dic)
+      with tf.device(device_name):
+          loss,optimizer,init,x,y = cnn_model_fn(mode,Config_dic)
       # Running the training
       print('Done!\n')
       print('2/2 - Executing the training\n')
