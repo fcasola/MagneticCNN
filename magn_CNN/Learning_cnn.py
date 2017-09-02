@@ -311,11 +311,12 @@ if __name__ == "__main__":
       tf.reset_default_graph()  
       
       # check if GPU
-      device_name = ''
-      if device_name == "gpu":
-          device_name = "/gpu:0"
+      if Config_dic['run_mode'] == "gpu":
+          device_name = Config_dic['device_name']
+      elif Config_dic['run_mode'] == "cpu":
+          device_name = Config_dic['device_name']     
       else:
-          device_name = "/cpu:0"      
+          raise ValueError('CPU/GPU running mode not properly specified')
       # Create the graph
       with tf.device(device_name):
           loss,optimizer,init,x,y = cnn_model_fn(mode,Config_dic)
