@@ -38,7 +38,6 @@ Multiplier = config.getfloat("training", "Multiplier")
 Script_mode = config.getboolean("cluster", "Script_mode")
 Dst_ovwr = config.getboolean("cluster", "Dst_ovwr")
 Model_ovwr = config.getboolean("cluster", "Model_ovwr")
-run_mode = config.get("cluster", "run_mode")
 device_name = config.get("cluster", "device_name")
 
 #paths
@@ -68,7 +67,6 @@ Config_dic= {"Ntrain_ex": Ntrain_ex,
 		"Script_mode": Script_mode,
 		"Dst_ovwr": Dst_ovwr,
 		"Model_ovwr": Model_ovwr,				
-		"run_mode": run_mode,		
 		"device_name": device_name,				
 		"write_train_path": write_train_path,
 		"save_learned": save_learned,
