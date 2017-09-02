@@ -2,7 +2,7 @@
 Convolutional Neural Nets for magnetism problems.
 
 ## Aim
-Computing the magnetic field produced by a certain magnetization pattern is a task routinely performed by many available [numerical routines](http://math.nist.gov/oommf/), with applications ranging from science to engineering. What about the opposite calculation instead? Is it possible, in general, to reconstruct a certain magnetization pattern given the field it produces?
+Computing the magnetic field produced by a certain magnetization pattern is a task performed by many available [numerical routines](http://math.nist.gov/oommf/), with applications ranging from science to engineering. What about the opposite calculation instead? Is it possible, in general, to reconstruct a certain magnetization pattern given the field it produces?
 
 We have recently been the first to answer this question and studied the related math in one of our publications at Harvard:
 
