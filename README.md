@@ -135,6 +135,8 @@ optional arguments:
 ```
 ## Results
 
+Training the CNN took approximately 45 minutes on a NVIDIA Tesla K20Xm GPU.
+
 ![Alt text](readme_img/results_1.png?raw=true "Target magnetization (left). Stray field input to the CNN (center) and interpolated output using the current training (right).")
 
 Target default magnetization defined in data/Config/test_shape.cfg (left). Stray field input to the CNN (center) and interpolated output using the current training (right)
