@@ -135,7 +135,7 @@ optional arguments:
 ```
 ## Results
 
-Training the CNN took approximately 45 minutes on a NVIDIA Tesla K20Xm GPU.
+Training the CNN took approximately 45 minutes on a [NVIDIA Tesla K20Xm GPU](https://www.techpowerup.com/gpudb/1884/tesla-k20xm).
 
 ![Alt text](readme_img/results_1.png?raw=true "Target magnetization (left). Stray field input to the CNN (center) and interpolated output using the current training (right).")
 
