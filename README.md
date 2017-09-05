@@ -24,11 +24,13 @@ In the next versions, we will teach our CNN to recognize more complex textures s
 
 ![Alt text](readme_img/training_1.png?raw=true "model for the convolutional net implemented")
 
-In the present model, we start generating Ns randomly defined magnetization patterns. The magnetization is collinear and has an elliptical-like shape (see exemplary image above, showing 3 shapes defined on a NpxNp = 32x32 pixel grid. The magnetization direction in space (parametrized by polar and azimuthal angle q,p) is sampled uniformly over the sphere. 
+NOTE: A detailed discussion of the model and the related theory is contained in the [following document](readme_img/20170823_magneticCnn_FCasola_v3.pdf)
 
-Next, for each magnetization we compute the out-of-plane component of the magnetic field using the "Compute_Bz" function in the "Create_TrainingCNN" module. Data are then saved in a hierarchical data format (.h5) file as [q,p,m,Bz] with dimensions [Ns x (2 + 2* Np**2 )]. The (m,Bz) pair is then used as the (y,x) label/feature of the cnn.
+We started generating Ns randomly defined magnetization patterns. The magnetization is collinear and has an elliptical-like shape (see exemplary image above, showing 3 shapes defined on a NpxNp = 32x32 pixel grid. The magnetization direction in space is sampled uniformly over the sphere by means of the polar and azimuthal angles θ and φ. 
 
-Importantly, we use dimensional scaling in the images to facilitate the learning process!
+Next, for each magnetization we compute the out-of-plane component of the magnetic field using the "Compute_Bz" function in the "Create_TrainingCNN" module. Data are then saved in a hierarchical data format (.h5) file as [θ,φ,m,Bz] with dimensions [Ns x (2 + 2* Np**2 )]. The (m,Bz) pair is then used as the (y,x) label/feature of the cnn.
+
+Importantly, we use dimensional scaling in the images to facilitate the learning process, as [described here.](readme_img/20170823_magneticCnn_FCasola_v3.pdf)
  
 ![Alt text](readme_img/Scheme_cnn.png?raw=true "model for the convolutional net implemented")
 
@@ -139,7 +141,7 @@ Training the CNN took approximately 45 minutes on a [NVIDIA Tesla K20Xm GPU](htt
 
 ![Alt text](readme_img/results_1.png?raw=true "Target magnetization (left). Stray field input to the CNN (center) and interpolated output using the current training (right).")
 
-Target default magnetization defined in data/Config/test_shape.cfg (left). Stray field input to the CNN (center) and interpolated output using the current training (right)
+Target default magnetization defined in data/Config/test_shape.cfg (left). Stray field input to the CNN (center) and interpolated output using the current training (right).
 
 ![Alt text](readme_img/results_2.png?raw=true "Loss function vs epochs time using the config file parameters specified above.")
 
