@@ -143,7 +143,7 @@ def predict_out(bz_scl_int,filelearning,x0,y0,x_var,y_var):
         # prediction started
         print('1/2 - Loading trained tensorflow variables.\n')
         # Recreate the network
-        saver = tf.train.import_meta_graph(filelearning)      
+        saver = tf.train.import_meta_graph(filelearning, clear_devices=True)      
         # load the parameters for the trained graph
         directory = Config_dic["save_learned"] 
         saver.restore(sess, tf.train.latest_checkpoint(directory))
