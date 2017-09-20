@@ -3,7 +3,7 @@ import os
 import time
 
 # Path to save the training set and basic initializations
-File_training = 'Training_set_'+time.strftime("%d_%m_%Y")
+File_training = 'Training_set_'+time.strftime("%d_%m_%Y_%H_%M_%S")
 # Define the size of the dataset you want to generate
 Numb_training = 5000
 
@@ -11,7 +11,7 @@ Numb_training = 5000
 os.system("python ../magn_CNN/Create_TrainingCNN.py -o {} -n {}".format(File_training, Numb_training))
 
 # Path to save the trained cnn and basic initializations
-File_learning = 'Learned_mod_'+time.strftime("%d_%m_%Y")
+File_learning = 'Learned_mod_'+time.strftime("%d_%m_%Y_%H_%M_%S")
 # Constant rescaling input dataset for training
 
 # Learning from the dataset (incomplete)
