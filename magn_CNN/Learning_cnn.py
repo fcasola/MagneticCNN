@@ -120,29 +120,6 @@ def cnn_model_fn(mode,Config_dic):
       kernel_size=Config_dic["k_filt_str_lyr2"][0:2],
       padding="same",
       activation=act_type)  
-
-  # LAYER 3 ---------------         
-  conv3 = tf.layers.conv2d(
-      inputs=conv2,
-      filters=Config_dic["Depth_lyr3"],
-      kernel_size=Config_dic["k_filt_str_lyr3"][0:2],
-      padding="same",
-      activation=act_type)  
-  # Pooling1, layer 2
-  pool1_lyr3 = tf.layers.conv2d(
-      inputs=pool1_lyr2,
-      filters=Config_dic["Depth_lyr3"],
-      kernel_size=Config_dic["k_filt_str_lyr3"][0:2],
-      padding="same",
-      activation=act_type)  
-  # Pooling2, layer 2
-  pool2_lyr3 = tf.layers.conv2d(
-      inputs=pool2_lyr2,
-      filters=Config_dic["Depth_lyr3"],
-      kernel_size=Config_dic["k_filt_str_lyr3"][0:2],
-      padding="same",
-      activation=act_type)  
-
   
   # Do upscaling and combining
   # tensors conv2,pool1_lyr3 and pool2_lyr3 
@@ -157,27 +134,36 @@ def cnn_model_fn(mode,Config_dic):
            int(Config_dic["img_size"][1]/(2**factor1)),Config_dic["Depth_lyr3"]] 
   ndim2 = [int(Config_dic["img_size"][0]/(2**factor2)), \
            int(Config_dic["img_size"][1]/(2**factor2)),Config_dic["Depth_lyr3"]]
-  US_pool1_lyr3 =  upscaling(pool1_lyr3,factor1,ndim1)
-  US_pool2_lyr3 =  upscaling(pool2_lyr3,factor2,ndim2)
+  US_pool1_lyr2 =  upscaling(pool1_lyr2,factor1,ndim1)
+  US_pool2_lyr2 =  upscaling(pool2_lyr2,factor2,ndim2)
 
   # Combining Upscaled pooling layers with the regular Conv layer
-  Combined_output = conv3 + US_pool1_lyr3 + US_pool2_lyr3
+  Combined_output = conv2 + US_pool1_lyr2 + US_pool2_lyr2
   
-  # LAYER 4 ---------------         
+  # LAYER 3 ---------------         
   # Apply a 1x1 convolution to act with ReLu, as in https://arxiv.org/pdf/1607.03597.pdf
-  conv4 = tf.layers.conv2d(
+  conv3 = tf.layers.conv2d(
       inputs=Combined_output,
       filters=Config_dic["Depth_lyr3"],
       kernel_size=Config_dic["k_filt_str_lyr3"][0:2],
       padding="same",
       activation=act_type)   
   
-  # LAYER 5 ---------------         
+  # LAYER 4 ---------------         
+  # Apply a 1x1 convolution to reduce feature size
+  conv4 = tf.layers.conv2d(
+      inputs=conv3,
+      filters=Config_dic["Depth_lyr3"],
+      kernel_size=[1, 1],
+      padding="same",
+      activation=act_type) 
+  
+  # LAYER 4 ---------------         
   # Apply a 1x1 convolution to reduce feature size
   conv5 = tf.layers.conv2d(
       inputs=conv4,
       filters=1,
-      kernel_size=Config_dic["k_filt_str_lyr3"][0:2],
+      kernel_size=[1, 1],
       padding="same",
       activation=act_type) 
   
