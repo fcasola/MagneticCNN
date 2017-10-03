@@ -131,9 +131,9 @@ def cnn_model_fn(mode,Config_dic):
   if ((factor1%1)!=0 or (factor2%1)!=0)==True:
       raise ValueError('Pooling size/sizes not multiple of 2')        
   ndim1 = [int(Config_dic["img_size"][0]/(2**factor1)), \
-           int(Config_dic["img_size"][1]/(2**factor1)),Config_dic["Depth_lyr3"]] 
+           int(Config_dic["img_size"][1]/(2**factor1)),Config_dic["Depth_lyr2"]] 
   ndim2 = [int(Config_dic["img_size"][0]/(2**factor2)), \
-           int(Config_dic["img_size"][1]/(2**factor2)),Config_dic["Depth_lyr3"]]
+           int(Config_dic["img_size"][1]/(2**factor2)),Config_dic["Depth_lyr2"]]
   US_pool1_lyr2 =  upscaling(pool1_lyr2,factor1,ndim1)
   US_pool2_lyr2 =  upscaling(pool2_lyr2,factor2,ndim2)
 
