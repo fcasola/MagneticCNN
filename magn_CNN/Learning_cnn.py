@@ -127,7 +127,7 @@ def cnn_model_fn(mode,Config_dic):
   
   # Upscaling
   factor1 = mt.log(Config_dic["Pool1_str_lyr1"][0],2)
-  factor2 = mt.log(Config_dic["Pool2_str_lyr1"][0]*Config_dic["Pool2_str_lyr1"][0],2)
+  factor2 = mt.log(Config_dic["Pool1_str_lyr1"][0]*Config_dic["Pool2_str_lyr1"][0],2)
   if ((factor1%1)!=0 or (factor2%1)!=0)==True:
       raise ValueError('Pooling size/sizes not multiple of 2')        
   ndim1 = [int(Config_dic["img_size"][0]/(2**factor1)), \
@@ -158,7 +158,7 @@ def cnn_model_fn(mode,Config_dic):
       padding="same",
       activation=act_type) 
   
-  # LAYER 4 ---------------         
+  # LAYER 5 ---------------         
   # Apply a 1x1 convolution to reduce feature size
   conv5 = tf.layers.conv2d(
       inputs=conv4,
