@@ -12,8 +12,8 @@ import os
 import argparse as ap
 import time
 from tensorflow.contrib import learn
-import Create_TrainingCNN as ct
 # personal modules
+import Create_TrainingCNN as ct
 from config import *
 
 # Reduce verbosity of tensorflow
@@ -99,30 +99,23 @@ def cnn_model_fn(mode,Config_dic):
   pool2_lyr1 = tf.layers.max_pooling2d(inputs=pool1_lyr1, pool_size=[Config_dic["Pool2_str_lyr1"][0]]*2, 
                                   strides=Config_dic["Pool2_str_lyr1"][1])
   
+  # Preparing for LAYER 2 ---------------         
+  list_layer2_up = [conv1]
+  list_layer2_mid = [pool1_lyr1]
+  list_layer2_bot = [pool2_lyr1]
   # LAYER 2 ---------------         
-  conv2 = tf.layers.conv2d(
-      inputs=conv1,
-      filters=Config_dic["Depth_lyr2"],
-      kernel_size=Config_dic["k_filt_str_lyr2"][0:2],
-      padding="same",
-      activation=act_type)  
-  # Pooling1, layer 2
-  pool1_lyr2 = tf.layers.conv2d(
-      inputs=pool1_lyr1,
-      filters=Config_dic["Depth_lyr2"],
-      kernel_size=Config_dic["k_filt_str_lyr2"][0:2],
-      padding="same",
-      activation=act_type)  
-  # Pooling2, layer 2
-  pool2_lyr2 = tf.layers.conv2d(
-      inputs=pool2_lyr1,
-      filters=Config_dic["Depth_lyr2"],
-      kernel_size=Config_dic["k_filt_str_lyr2"][0:2],
-      padding="same",
-      activation=act_type)  
+  for i in range(Config_dic["depth_cnn"]):
+      list_layer2_up.append(tf.layers.conv2d(inputs=list_layer2_up[i],filters=Config_dic["Depth_lyr2"], \
+      kernel_size=Config_dic["k_filt_str_lyr2"][0:2],padding="same",activation=act_type))
+        
+      list_layer2_mid.append(tf.layers.conv2d(inputs=list_layer2_mid[i],filters=Config_dic["Depth_lyr2"], \
+      kernel_size=Config_dic["k_filt_str_lyr2"][0:2],padding="same",activation=act_type))
+      
+      list_layer2_bot.append(tf.layers.conv2d(inputs=list_layer2_bot[i],filters=Config_dic["Depth_lyr2"], \
+      kernel_size=Config_dic["k_filt_str_lyr2"][0:2],padding="same",activation=act_type))
   
   # Do upscaling and combining
-  # tensors conv2,pool1_lyr3 and pool2_lyr3 
+  # tensors list_layer2_up[-1],list_layer2_mid[-1] and list_layer2_bot[-1] 
   # Pooling MUST rescale the map by powers of 2 by design
   
   # Upscaling
@@ -134,11 +127,11 @@ def cnn_model_fn(mode,Config_dic):
            int(Config_dic["img_size"][1]/(2**factor1)),Config_dic["Depth_lyr2"]] 
   ndim2 = [int(Config_dic["img_size"][0]/(2**factor2)), \
            int(Config_dic["img_size"][1]/(2**factor2)),Config_dic["Depth_lyr2"]]
-  US_pool1_lyr2 =  upscaling(pool1_lyr2,factor1,ndim1)
-  US_pool2_lyr2 =  upscaling(pool2_lyr2,factor2,ndim2)
+  US_pool1_lyr2 =  upscaling(list_layer2_mid[-1],factor1,ndim1)
+  US_pool2_lyr2 =  upscaling(list_layer2_bot[-1],factor2,ndim2)
 
   # Combining Upscaled pooling layers with the regular Conv layer
-  Combined_output = conv2 + US_pool1_lyr2 + US_pool2_lyr2
+  Combined_output = list_layer2_up[-1] + US_pool1_lyr2 + US_pool2_lyr2
   
   # LAYER 3 ---------------         
   # Apply a 1x1 convolution to act with ReLu, as in https://arxiv.org/pdf/1607.03597.pdf
@@ -271,8 +264,15 @@ if __name__ == "__main__":
        itemsel=int(len(loaddataset['Phi'])*Config_dic["Train_2_Valid"]) 
        bz_sel = np.float32(Config_dic["Multiplier"]*loaddataset["Bz"][0:itemsel][:])
        m_sel = np.float32(loaddataset["mloc"][0:itemsel][:])  
-       #phi = loaddataset["Phi"][itemsel][:]
-       #tht = loaddataset["Theta"][itemsel][:]   
+       if Config_dic["target_type"]==0: # comparing only shapes
+           mz_in = m_sel.copy()
+       elif Config_dic["target_type"]==1:
+           #phi_sel = np.tile(loaddataset["Phi"][0:itemsel],[1,m_sel.shape[1]])
+           tht_sel = np.float32(np.tile(loaddataset["Theta"][0:itemsel],[1,m_sel.shape[1]]) )
+           #mz_in = np.float32(m_sel*np.cos(tht_sel))
+           combine_m = np.copy(m_sel)
+           combine_m[m_sel>0] = tht_sel[m_sel>0]       
+           mz_in = np.float32(combine_m)           
    else:
        # folder is empty
        print('\nTraining directory is empty.\n')
@@ -306,7 +306,7 @@ if __name__ == "__main__":
       print('2/2 - Executing the training\n')
       print('Epochs: %4d Batch size: %4d Learn rate: %6.4f Dataset size: %5d \n' \
             %(Config_dic["epochs"],Config_dic["batch_size"],Config_dic["learn_rate"],itemsel))
-      run_training(loss,optimizer,init,x,y,bz_sel,m_sel,Config_dic,data_filename)
+      run_training(loss,optimizer,init,x,y,bz_sel,mz_in,Config_dic,data_filename)
       print('Done!\n')
     else:
         print('\nThe most recent file will be used in predictions.')            

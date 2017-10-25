@@ -26,6 +26,8 @@ k_filt_str_lyr2 = json.loads(config.get("model","k_filt_str_lyr2"))
 Depth_lyr2 = config.getint("model", "Depth_lyr2")
 k_filt_str_lyr3 = json.loads(config.get("model","k_filt_str_lyr3"))
 Depth_lyr3 = config.getint("model", "Depth_lyr3")
+depth_cnn = config.getint("model", "depth_cnn")
+target_type = config.getint("model", "target_type")
 
 #training
 learn_rate = config.getfloat("training", "learn_rate")
@@ -59,10 +61,12 @@ Config_dic= {"Ntrain_ex": Ntrain_ex,
 		"Depth_lyr2": Depth_lyr2,
 		"k_filt_str_lyr3": k_filt_str_lyr3,
 		"Depth_lyr3": Depth_lyr3,
+		"depth_cnn":depth_cnn,
 		"learn_rate": learn_rate,
 		"epochs": epochs,
 		"batch_size": batch_size,
 		"Train_2_Valid": Train_2_Valid,
+		"target_type": target_type,
 		"Multiplier": Multiplier,
 		"Script_mode": Script_mode,
 		"Dst_ovwr": Dst_ovwr,
