@@ -10,10 +10,10 @@ https://arxiv.org/abs/1611.00673
 
 Turns out that obtaining the manifold of solutions in the general case is an extremely non-trivial task, involving several complex numerical variational minimizations.
 
-Here we test the possibility of having a general, single piece of code capable of performing this task making use of the power of convolutional neural networks ([CNNs](https://en.wikipedia.org/wiki/Convolutional_neural_network)). 
+Here we test the possibility of having a general, single piece of code capable of performing the reconstruction, making use of the power of convolutional neural networks ([CNNs](https://en.wikipedia.org/wiki/Convolutional_neural_network)). 
 We test the capability of CNNs of "learning" the laws of magnetism and perform for us all the related image processing operations.
 
-This code is inspired by recent publications addressing the possibility of machine learning algorithms to learn other, extremely important for applications, laws of physics, e.g.:
+This code is inspired by recent publications addressing the possibility of machine learning algorithms to learn other, extremely important for applications, laws of physics, e.g. fluid dynamics:
 
 https://arxiv.org/pdf/1607.03597.pdf
 
@@ -34,7 +34,7 @@ Importantly, we use dimensional scaling in the images to facilitate the learning
  
 ![Alt text](readme_img/Scheme_cnn.png?raw=true "model for the convolutional net implemented")
 
-The .h5 dataset is then fed for training into a cnn mimicking the one in https://arxiv.org/pdf/1607.03597.pdf. The scheme for the cnn is in the figure above. At prediction time, the user can feed the network using the module "Predict_cnn" using a lossless .png picture containing the out-of-plane component of the magnetic field. The png is created such that b/w is the minimum/maximum (Min/Max) value for the magnetic field. Predict_cnn needs to know only the (Min/Max) values and the range of the spatial axes (width/height of the image, see python Predict_cnn.py -h for detailed help).
+The .h5 dataset is then fed for training into a cnn mimicking the one in https://arxiv.org/pdf/1607.03597.pdf. The scheme for the cnn is in the figure above. The two major changes are related to the size of the filter bank b and the depth of the net d, which are parameters that we can modify by changing the values of ("Depth_lyr#","depth_cnn") in the configuration file data/Config/config_training.cfg. At prediction time, the user can feed the network using the module "Predict_cnn" using a lossless .png picture containing the out-of-plane component of the magnetic field. The png is created such that b/w is the minimum/maximum (Min/Max) value for the magnetic field. Predict_cnn needs to know only the (Min/Max) values and the range of the spatial axes (width/height of the image, see python Predict_cnn.py -h for detailed help).
 
 ### Prerequisites
 
@@ -52,7 +52,7 @@ First, do:
 git clone https://github.com/fcasola/MagneticCNN 
 ```
 
-To facilitate use, a test dataset and learning parameters are already included in this github version.
+To facilitate use, a small test dataset and learning parameters are already included in this github version.
 To train the CNN yourself, run the following command:
 
 ```
@@ -77,9 +77,34 @@ python Predict_cnn.py -e
 ```
 
 The example will be reconstructing an elliptical shape for the magnetization as defined in data/Config/test_shape.cfg. You can change the shape and the magnetization orientation yourself and have fun with the CNN!!
-The result for the default case is shown in the section 'Results' below.
+A summary of the results is presented in the section 'Results' below.
 
 All predictions will be saved in the folder data/Predictions
+
+## Results
+
+As a first step the network was trained to simply recognize the shape of the underlying magnetic disc (parameter "target_type" set to 0 in the configuration file). The filter bank size used was of dimension b=32 and the parameter d was set to d=1, meaning that the CNN had 4 hidden layers plus one input and one output layer. The training dataset consisted of 3000 images with elliptical shapes of random orientation, position, size and tilt. The training of the CNN took approximately 45 minutes on an [NVIDIA Tesla K20Xm GPU](https://www.techpowerup.com/gpudb/1884/tesla-k20xm).
+
+![Alt text](readme_img/results_1.png "Target magnetization (left). Stray field input to the CNN (center) and interpolated output using a simple training based on 3000 images (right).")
+
+In the figure above (left) we see an exemplary target magnetization (whose shape is one out of the many randomly generated according to the parameters defined in data/Config/test_shape.cfg). The stray field input of the CNN is shown at the image center and the interpolated output using the current training is to the right.
+
+![Alt text](readme_img/results_2.png?raw=true "Loss function vs epochs time using the config file parameters specified above.")
+
+The loss function vs epochs time is also recorded as a separate .h5 file and is shown above for this first training. Loss on the validation set (2000 images) at the final step is 9.55*10-4.
+
+Next, the study was extended to include a larger dataset and the CNN trained to be able to recognize the orientation of the underlying magnetization (parameter "target_type" set to 1 in the configuration file). The network was fed with an input dataset of 10800 stray field images and a target output representing, e.g., the polar angle of the magnetization at each point of the magnetic disc (see e.g. image below).
+
+![Alt text](readme_img/input_angles.png?raw=true "Exemplary target local polar angle of the magnetization (left) and output of the network after training (right). The output has been produced by training a network with b=32 and d=3 (see also text).")
+
+The training was carried out by keeping the dataset constant and varying the parameters b and d (the size of the filter bank and of the network depth, respectively). The parameters b,d are called ("Depth_lyr#","depth_cnn") in the file data/Config/config_training.cfg. Interestingly, by monitoring the CNN loss as a function of the epochs time we observe (see image below) that a deeper neural net is required in order to achieve a proper accuracy in the reconstruction of the magnetization orientation. Varying the CNN depth turns out to be way more effective than changing the size of the filter bank.
+
+![Alt text](readme_img/Scaling_depth.png "Loss function vs epochs time for different values of the depth and the filter bank size. In order to reconstruct the orientation of the magnetization (not only its shape) a deeper network is required.")
+
+Each of the trainings above took approximately 4h and 45 m on an [NVIDIA Tesla K20Xm GPU](https://www.techpowerup.com/gpudb/1884/tesla-k20xm). In order to evaluate the training accuracy, a plot with the histogram of the deviations of the predicted vs expected polar angle is shown below. The histogram was generated for 2000 images selected from both the training and the validation dataset.
+
+<img src="readme_img/Histogram_Dtheta_train.png" width="425"/> <img src="readme_img/Histogram_Dtheta.png" width="425"/>
+
 
 ### A few words about the modules
 ```
@@ -134,18 +159,4 @@ optional arguments:
   -t , --thickness    Thickness of the magnetic layer [in meters].
   -ms , --Ms          Maximum scalar value for the nominal saturation magnetization of
                       the layer [in A/m].
-```
-## Results
-
-Training the CNN took approximately 45 minutes on a [NVIDIA Tesla K20Xm GPU](https://www.techpowerup.com/gpudb/1884/tesla-k20xm).
-
-![Alt text](readme_img/results_1.png?raw=true "Target magnetization (left). Stray field input to the CNN (center) and interpolated output using the current training (right).")
-
-Target default magnetization defined in data/Config/test_shape.cfg (left). Stray field input to the CNN (center) and interpolated output using the current training (right).
-
-![Alt text](readme_img/results_2.png?raw=true "Loss function vs epochs time using the config file parameters specified above.")
-
-Loss function vs epochs time using the config file parameters specified above. Training data of 3000 images with elliptical shapes of random orientation, posiiton, size and tilt. Loss on the validation set (2000 images) at the final step is 9.55*10-4.
-
-
-
+``` 
